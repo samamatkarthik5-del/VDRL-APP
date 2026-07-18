@@ -183,31 +183,26 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
+# Static files
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Uploaded document files
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.azure_storage.AzureStorage",
-        "OPTIONS": {
-            "account_name": os.environ.get(
-                "AZURE_STORAGE_ACCOUNT_NAME"
-            ),
-            "account_key": os.environ.get(
-                "AZURE_STORAGE_ACCOUNT_KEY"
-            ),
-            "azure_container": os.environ.get(
-                "AZURE_STORAGE_CONTAINER",
-                "vdrl-documents"
-            ),
-            "expiration_secs": 3600,
-            "overwrite_files": False,
-        },
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": (
+            "whitenoise.storage."
+            "CompressedManifestStaticFilesStorage"
+        ),
     },
 }
+
 LOGIN_URL = "/accounts/login/"
 
 LOGIN_REDIRECT_URL = "/"
