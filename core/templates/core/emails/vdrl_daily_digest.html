@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+
+<html>
+
+<body
+    style="
+        margin: 0;
+        padding: 0;
+        background: #f4f6f9;
+        font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
+        color: #1f2937;
+    "
+>
+
+    <div
+        style="
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 24px;
+        "
+    >
+
+        <div
+            style="
+                background: #172033;
+                color: white;
+                padding: 20px 24px;
+                border-radius: 8px 8px 0 0;
+            "
+        >
+
+            <h1
+                style="
+                    margin: 0;
+                    font-size: 22px;
+                "
+            >
+                VDRL Daily Action Digest
+            </h1>
+
+            <p
+                style="
+                    margin:
+                        8px 0 0;
+                    color: #dbeafe;
+                "
+            >
+                {{ notification_date }}
+            </p>
+
+        </div>
+
+
+        <div
+            style="
+                background: white;
+                padding: 24px;
+                border-radius: 0 0 8px 8px;
+            "
+        >
+
+            <p>
+                Dear
+                <strong>
+                    {{ recipient_name }}
+                </strong>,
+            </p>
+
+
+            <p>
+                You have
+                <strong>
+                    {{ item_count }}
+                </strong>
+                VDRL action(s) requiring attention.
+            </p>
+
+
+            {% for alert in alerts %}
+
+                <div
+                    style="
+                        border:
+                            1px solid #e5e7eb;
+                        border-left:
+                            5px solid
+                            {% if alert.severity == 'LEVEL_3' %}
+                                #991b1b
+                            {% elif alert.severity == 'LEVEL_2' %}
+                                #dc2626
+                            {% elif alert.severity == 'OVERDUE' %}
+                                #ea580c
+                            {% else %}
+                                #2563eb
+                            {% endif %};
+                        border-radius: 7px;
+                        padding: 16px;
+                        margin: 18px 0;
+                    "
+                >
+
+                    <div
+                        style="
+                            font-size: 12px;
+                            font-weight: bold;
+                            color:
+                            {% if alert.severity == 'LEVEL_3' %}
+                                #991b1b
+                            {% elif alert.severity == 'LEVEL_2' %}
+                                #dc2626
+                            {% elif alert.severity == 'OVERDUE' %}
+                                #ea580c
+                            {% else %}
+                                #2563eb
+                            {% endif %};
+                            margin-bottom: 7px;
+                        "
+                    >
+                        {{ alert.severity_label }}
+                        ·
+                        {{ alert.category }}
+                    </div>
+
+
+                    <h3
+                        style="
+                            margin:
+                                0 0 10px;
+                        "
+                    >
+                        {{ alert.title }}
+                    </h3>
+
+
+                    <table
+                        style="
+                            width: 100%;
+                            border-collapse:
+                                collapse;
+                            font-size: 14px;
+                        "
+                    >
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding:
+                                        5px 12px 5px 0;
+                                    color:
+                                        #6b7280;
+                                    width: 160px;
+                                "
+                            >
+                                Sales Order
+                            </td>
+
+                            <td>
+                                <strong>
+                                    {{ alert.sales_order }}
+                                </strong>
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding:
+                                        5px 12px 5px 0;
+                                    color:
+                                        #6b7280;
+                                "
+                            >
+                                Customer
+                            </td>
+
+                            <td>
+                                {{ alert.customer }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding:
+                                        5px 12px 5px 0;
+                                    color:
+                                        #6b7280;
+                                "
+                            >
+                                Reference
+                            </td>
+
+                            <td>
+                                {{ alert.reference }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding:
+                                        5px 12px 5px 0;
+                                    color:
+                                        #6b7280;
+                                "
+                            >
+                                Current Status
+                            </td>
+
+                            <td>
+                                {{ alert.status }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding:
+                                        5px 12px 5px 0;
+                                    color:
+                                        #6b7280;
+                                "
+                            >
+                                Due Date
+                            </td>
+
+                            <td>
+                                {{ alert.due_date }}
+                            </td>
+
+                        </tr>
+
+
+                        <tr>
+
+                            <td
+                                style="
+                                    padding:
+                                        5px 12px 5px 0;
+                                    color:
+                                        #6b7280;
+                                "
+                            >
+                                Timing
+                            </td>
+
+                            <td>
+                                <strong>
+                                    {{ alert.timing_text }}
+                                </strong>
+                            </td>
+
+                        </tr>
+
+                    </table>
+
+
+                    <p
+                        style="
+                            margin:
+                                16px 0 0;
+                        "
+                    >
+
+                        <a
+                            href="{{ alert.link }}"
+                            style="
+                                display:
+                                    inline-block;
+                                background:
+                                    #2563eb;
+                                color:
+                                    white;
+                                text-decoration:
+                                    none;
+                                padding:
+                                    9px 14px;
+                                border-radius:
+                                    5px;
+                                font-size:
+                                    14px;
+                            "
+                        >
+                            Open Action
+                        </a>
+
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+
+            <p
+                style="
+                    color: #6b7280;
+                    font-size: 13px;
+                    margin-top: 28px;
+                "
+            >
+                This is an automated notification from
+                the VDRL Management System.
+            </p>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

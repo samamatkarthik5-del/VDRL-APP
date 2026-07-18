@@ -1,0 +1,7 @@
+usage: manage.py send_vdrl_reminders [-h] [--dry-run] [--force] [--date DATE]
+                                     [--version] [-v {0,1,2,3}]
+                                     [--settings SETTINGS]
+                                     [--pythonpath PYTHONPATH] [--traceback]
+                                     [--no-color] [--force-color]
+                                     [--skip-checks]
+manage.py send_vdrl_reminders: error: unrecognized arguments: >

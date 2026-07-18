@@ -1,0 +1,1389 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+Advanced Analytics | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            VDRL Advanced Analytics
+        </h1>
+
+        <p class="muted">
+            Management performance overview as of
+            {{ today }}
+        </p>
+
+    </div>
+
+
+    <div class="header-actions">
+
+        <a
+            href="{% url 'core:management_reports' %}"
+            class="button"
+        >
+            Detailed Reports
+        </a>
+
+        <a
+            href="{% url 'core:export_management_reports_xlsx' %}"
+            class="button button-primary"
+        >
+            Export Excel
+        </a>
+
+    </div>
+
+</div>
+
+
+<section class="panel">
+
+    <form
+        method="get"
+        class="filter-form analytics-filter-form"
+    >
+
+        <div>
+
+            <label>
+                Customer
+            </label>
+
+            <select
+                name="customer"
+                class="form-control"
+            >
+
+                <option value="">
+                    All Customers
+                </option>
+
+                {% for customer in customers %}
+
+                    <option
+                        value="{{ customer.pk }}"
+
+                        {% if filters.customer == customer.pk|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ customer.name }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Sales Order
+            </label>
+
+            <select
+                name="sales_order"
+                class="form-control"
+            >
+
+                <option value="">
+                    All Sales Orders
+                </option>
+
+                {% for sales_order in sales_orders %}
+
+                    <option
+                        value="{{ sales_order.pk }}"
+
+                        {% if filters.sales_order == sales_order.pk|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ sales_order.sales_order_number }}
+
+                        -
+
+                        {{ sales_order.customer.customer_code }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Responsible Department
+            </label>
+
+            <select
+                name="department"
+                class="form-control"
+            >
+
+                <option value="">
+                    All Departments
+                </option>
+
+                {% for department in departments %}
+
+                    <option
+                        value="{{ department.pk }}"
+
+                        {% if filters.department == department.pk|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ department.name }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Sales Order Date From
+            </label>
+
+            <input
+                type="date"
+                name="date_from"
+                value="{{ filters.date_from }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Sales Order Date To
+            </label>
+
+            <input
+                type="date"
+                name="date_to"
+                value="{{ filters.date_to }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div class="filter-actions">
+
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Apply Filters
+            </button>
+
+            <a
+                href="{% url 'core:advanced_dashboard' %}"
+                class="button"
+            >
+                Clear
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+
+<!-- =====================================================
+     KPI CARDS
+     ===================================================== -->
+
+
+<div class="analytics-kpi-grid">
+
+
+    <div class="analytics-kpi-card">
+
+        <div class="analytics-kpi-label">
+            Total Documents
+        </div>
+
+        <div class="analytics-kpi-value">
+            {{ summary.total_documents }}
+        </div>
+
+        <div class="analytics-kpi-note">
+            Active VDRL document records
+        </div>
+
+    </div>
+
+
+    <div class="analytics-kpi-card analytics-kpi-success">
+
+        <div class="analytics-kpi-label">
+            Approval Rate
+        </div>
+
+        <div class="analytics-kpi-value">
+            {{ summary.approval_rate }}%
+        </div>
+
+        <div class="analytics-kpi-note">
+            {{ summary.approved_documents }}
+            documents approved
+        </div>
+
+    </div>
+
+
+    <div class="analytics-kpi-card analytics-kpi-success">
+
+        <div class="analytics-kpi-label">
+            On-Time First Submission
+        </div>
+
+        <div class="analytics-kpi-value">
+            {{ summary.on_time_submission_rate }}%
+        </div>
+
+        <div class="analytics-kpi-note">
+            Against planned submission date
+        </div>
+
+    </div>
+
+
+    <div class="analytics-kpi-card analytics-kpi-info">
+
+        <div class="analytics-kpi-label">
+            Avg. Internal Turnaround
+        </div>
+
+        <div class="analytics-kpi-value">
+            {{ summary.average_internal_days }}
+        </div>
+
+        <div class="analytics-kpi-note">
+            Days per completed internal holding period
+        </div>
+
+    </div>
+
+
+    <div class="analytics-kpi-card analytics-kpi-info">
+
+        <div class="analytics-kpi-label">
+            Avg. Customer Review
+        </div>
+
+        <div class="analytics-kpi-value">
+            {{ summary.average_customer_days }}
+        </div>
+
+        <div class="analytics-kpi-note">
+            Days per completed customer holding period
+        </div>
+
+    </div>
+
+
+    <div class="analytics-kpi-card">
+
+        <div class="analytics-kpi-label">
+            Avg. Review Cycles
+        </div>
+
+        <div class="analytics-kpi-value">
+            {{ summary.average_review_cycles }}
+        </div>
+
+        <div class="analytics-kpi-note">
+            Submission cycles per submitted document
+        </div>
+
+    </div>
+
+
+    <div class="analytics-kpi-card analytics-kpi-danger">
+
+        <div class="analytics-kpi-label">
+            Overdue Documents
+        </div>
+
+        <div class="analytics-kpi-value">
+            {{ summary.overdue_documents }}
+        </div>
+
+        <div class="analytics-kpi-note">
+            Internal and customer overdue actions
+        </div>
+
+    </div>
+
+
+    <div class="analytics-kpi-card analytics-kpi-warning">
+
+        <div class="analytics-kpi-label">
+            Open CRS Comments
+        </div>
+
+        <div class="analytics-kpi-value">
+            {{ summary.open_crs_comments }}
+        </div>
+
+        <div class="analytics-kpi-note">
+            {{ summary.overdue_crs_comments }}
+            overdue
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     CHART ROW 1
+     ===================================================== -->
+
+
+<div class="analytics-chart-grid">
+
+    <section class="panel chart-panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Document Status Distribution
+                </h2>
+
+                <p class="small-muted">
+                    Current VDRL workflow position
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="chart-container">
+
+            <canvas
+                id="documentStatusChart"
+            >
+            </canvas>
+
+        </div>
+
+    </section>
+
+
+    <section class="panel chart-panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Approval Trend
+                </h2>
+
+                <p class="small-muted">
+                    Final document approvals during
+                    the last 12 months
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="chart-container">
+
+            <canvas
+                id="approvalTrendChart"
+            >
+            </canvas>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- =====================================================
+     CHART ROW 2
+     ===================================================== -->
+
+
+<div class="analytics-chart-grid">
+
+    <section class="panel chart-panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Department Workload
+                </h2>
+
+                <p class="small-muted">
+                    Current internal pending and
+                    overdue documents
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="chart-container">
+
+            <canvas
+                id="departmentWorkloadChart"
+            >
+            </canvas>
+
+        </div>
+
+    </section>
+
+
+    <section class="panel chart-panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Delay Ownership
+                </h2>
+
+                <p class="small-muted">
+                    Recorded holding days by
+                    current or previous holder
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="chart-container">
+
+            <canvas
+                id="delayOwnershipChart"
+            >
+            </canvas>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- =====================================================
+     CHART ROW 3
+     ===================================================== -->
+
+
+<div class="analytics-chart-grid">
+
+    <section class="panel chart-panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    Review Cycle Distribution
+                </h2>
+
+                <p class="small-muted">
+                    Number of submission cycles
+                    required by documents
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="chart-container">
+
+            <canvas
+                id="reviewCycleChart"
+            >
+            </canvas>
+
+        </div>
+
+    </section>
+
+
+    <section class="panel chart-panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    CRS Comment Status
+                </h2>
+
+                <p class="small-muted">
+                    Current status of all
+                    customer comments
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="chart-container">
+
+            <canvas
+                id="crsStatusChart"
+            >
+            </canvas>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- =====================================================
+     SALES ORDERS AT RISK
+     ===================================================== -->
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <div>
+
+            <h2>
+                Sales Orders Requiring Attention
+            </h2>
+
+            <p class="small-muted">
+                Ranked using overdue documents,
+                overdue CRS comments and open actions
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Sales Order</th>
+                    <th>Customer</th>
+                    <th>Project</th>
+                    <th>Approval</th>
+                    <th>Overdue Documents</th>
+                    <th>Customer Pending</th>
+                    <th>Internal Pending</th>
+                    <th>Open CRS</th>
+                    <th>Overdue CRS</th>
+                    <th>Risk Score</th>
+                    <th>Risk Level</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for row in project_risk_rows %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+                                {{ row.sales_order.sales_order_number }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+                            {{ row.sales_order.customer.name }}
+                        </td>
+
+
+                        <td>
+
+                            {% if row.sales_order.project %}
+
+                                {{ row.sales_order.project.project_name }}
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="analytics-progress">
+
+                                <div class="analytics-progress-track">
+
+                                    <div
+                                        class="analytics-progress-fill"
+                                        style="
+                                            width:
+                                            {{ row.approval_percent }}%;
+                                        "
+                                    >
+                                    </div>
+
+                                </div>
+
+                                <span>
+                                    {{ row.approval_percent }}%
+                                </span>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            {% if row.overdue_documents %}
+
+                                <span class="analytics-number-danger">
+                                    {{ row.overdue_documents }}
+                                </span>
+
+                            {% else %}
+
+                                0
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ row.customer_pending }}
+                        </td>
+
+
+                        <td>
+                            {{ row.internal_pending }}
+                        </td>
+
+
+                        <td>
+                            {{ row.open_crs_comments }}
+                        </td>
+
+
+                        <td>
+
+                            {% if row.overdue_crs_comments %}
+
+                                <span class="analytics-number-danger">
+                                    {{ row.overdue_crs_comments }}
+                                </span>
+
+                            {% else %}
+
+                                0
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <strong>
+                                {{ row.risk_score }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+
+                            {% if row.risk_level == "High" %}
+
+                                <span class="risk-badge risk-high">
+                                    High
+                                </span>
+
+                            {% elif row.risk_level == "Medium" %}
+
+                                <span class="risk-badge risk-medium">
+                                    Medium
+                                </span>
+
+                            {% else %}
+
+                                <span class="risk-badge risk-low">
+                                    Low
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <a
+                                href="{% url 'core:sales_order_vdrl' row.sales_order.pk %}"
+                                class="button button-small button-primary"
+                            >
+                                Open
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="12"
+                            class="empty-state"
+                        >
+                            No Sales Order data available
+                            for the selected filters.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     EMPLOYEE WORKLOAD
+     ===================================================== -->
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <div>
+
+            <h2>
+                Employee Action Workload
+            </h2>
+
+            <p class="small-muted">
+                Open document actions and
+                CRS responsibilities
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>Pending Documents</th>
+                    <th>Overdue Documents</th>
+                    <th>Open CRS Comments</th>
+                    <th>Overdue CRS Comments</th>
+                    <th>Total Open Actions</th>
+                    <th>Total Overdue</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for row in employee_workload_rows %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+                                {{ row.name }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+                            {{ row.department }}
+                        </td>
+
+
+                        <td>
+                            {{ row.pending_documents }}
+                        </td>
+
+
+                        <td>
+
+                            {% if row.overdue_documents %}
+
+                                <span class="analytics-number-danger">
+                                    {{ row.overdue_documents }}
+                                </span>
+
+                            {% else %}
+
+                                0
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ row.open_crs_comments }}
+                        </td>
+
+
+                        <td>
+
+                            {% if row.overdue_crs_comments %}
+
+                                <span class="analytics-number-danger">
+                                    {{ row.overdue_crs_comments }}
+                                </span>
+
+                            {% else %}
+
+                                0
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <strong>
+                                {{ row.total_open_actions }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+
+                            {% if row.total_overdue_actions %}
+
+                                <strong class="analytics-number-danger">
+                                    {{ row.total_overdue_actions }}
+                                </strong>
+
+                            {% else %}
+
+                                0
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="8"
+                            class="empty-state"
+                        >
+                            No employee workload data available.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<!-- Safely pass Python chart data to JavaScript -->
+
+{{ chart_data|json_script:"advanced-dashboard-data" }}
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/chart.js"
+>
+</script>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const chartDataElement =
+            document.getElementById(
+                "advanced-dashboard-data"
+            );
+
+        if (!chartDataElement) {
+            return;
+        }
+
+
+        const chartData =
+            JSON.parse(
+                chartDataElement.textContent
+            );
+
+
+        Chart.defaults.font.family =
+            "Arial, Helvetica, sans-serif";
+
+
+        Chart.defaults.color =
+            "#475569";
+
+
+        // ================================================
+        // DOCUMENT STATUS
+        // ================================================
+
+        new Chart(
+            document.getElementById(
+                "documentStatusChart"
+            ),
+            {
+                type: "doughnut",
+
+                data: {
+                    labels:
+                        chartData
+                        .document_status
+                        .labels,
+
+                    datasets: [
+                        {
+                            data:
+                                chartData
+                                .document_status
+                                .values,
+
+                            backgroundColor: [
+                                "#2563eb",
+                                "#16a34a",
+                                "#ea580c",
+                                "#dc2626",
+                                "#7c3aed",
+                                "#0891b2",
+                                "#64748b",
+                                "#ca8a04",
+                                "#4f46e5",
+                                "#0f766e",
+                                "#be123c",
+                                "#9333ea",
+                                "#0369a1",
+                                "#15803d",
+                                "#9f1239",
+                            ],
+
+                            borderWidth: 1,
+                        }
+                    ],
+                },
+
+                options: {
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    plugins: {
+                        legend: {
+                            position:
+                                "bottom",
+                        }
+                    },
+                },
+            }
+        );
+
+
+        // ================================================
+        // APPROVAL TREND
+        // ================================================
+
+        new Chart(
+            document.getElementById(
+                "approvalTrendChart"
+            ),
+            {
+                type: "line",
+
+                data: {
+                    labels:
+                        chartData
+                        .approval_trend
+                        .labels,
+
+                    datasets: [
+                        {
+                            label:
+                                "Final Approvals",
+
+                            data:
+                                chartData
+                                .approval_trend
+                                .values,
+
+                            borderColor:
+                                "#2563eb",
+
+                            backgroundColor:
+                                "rgba(37, 99, 235, 0.12)",
+
+                            fill: true,
+
+                            tension: 0.25,
+                        }
+                    ],
+                },
+
+                options: {
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    scales: {
+                        y: {
+                            beginAtZero:
+                                true,
+
+                            ticks: {
+                                precision:
+                                    0,
+                            },
+                        }
+                    },
+                },
+            }
+        );
+
+
+        // ================================================
+        // DEPARTMENT WORKLOAD
+        // ================================================
+
+        new Chart(
+            document.getElementById(
+                "departmentWorkloadChart"
+            ),
+            {
+                type: "bar",
+
+                data: {
+                    labels:
+                        chartData
+                        .department_workload
+                        .labels,
+
+                    datasets: [
+                        {
+                            label:
+                                "Pending",
+
+                            data:
+                                chartData
+                                .department_workload
+                                .pending,
+
+                            backgroundColor:
+                                "#2563eb",
+                        },
+
+                        {
+                            label:
+                                "Overdue",
+
+                            data:
+                                chartData
+                                .department_workload
+                                .overdue,
+
+                            backgroundColor:
+                                "#dc2626",
+                        }
+                    ],
+                },
+
+                options: {
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    scales: {
+                        x: {
+                            stacked:
+                                false,
+                        },
+
+                        y: {
+                            beginAtZero:
+                                true,
+
+                            ticks: {
+                                precision:
+                                    0,
+                            },
+                        }
+                    },
+                },
+            }
+        );
+
+
+        // ================================================
+        // DELAY OWNERSHIP
+        // ================================================
+
+        new Chart(
+            document.getElementById(
+                "delayOwnershipChart"
+            ),
+            {
+                type: "bar",
+
+                data: {
+                    labels:
+                        chartData
+                        .delay_ownership
+                        .labels,
+
+                    datasets: [
+                        {
+                            label:
+                                "Holding Days",
+
+                            data:
+                                chartData
+                                .delay_ownership
+                                .values,
+
+                            backgroundColor: [
+                                "#ea580c",
+                                "#2563eb",
+                                "#64748b",
+                            ],
+                        }
+                    ],
+                },
+
+                options: {
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    plugins: {
+                        legend: {
+                            display:
+                                false,
+                        }
+                    },
+
+                    scales: {
+                        y: {
+                            beginAtZero:
+                                true,
+                        }
+                    },
+                },
+            }
+        );
+
+
+        // ================================================
+        // REVIEW CYCLES
+        // ================================================
+
+        new Chart(
+            document.getElementById(
+                "reviewCycleChart"
+            ),
+            {
+                type: "bar",
+
+                data: {
+                    labels:
+                        chartData
+                        .review_cycles
+                        .labels,
+
+                    datasets: [
+                        {
+                            label:
+                                "Documents",
+
+                            data:
+                                chartData
+                                .review_cycles
+                                .values,
+
+                            backgroundColor:
+                                "#7c3aed",
+                        }
+                    ],
+                },
+
+                options: {
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    plugins: {
+                        legend: {
+                            display:
+                                false,
+                        }
+                    },
+
+                    scales: {
+                        y: {
+                            beginAtZero:
+                                true,
+
+                            ticks: {
+                                precision:
+                                    0,
+                            },
+                        }
+                    },
+                },
+            }
+        );
+
+
+        // ================================================
+        // CRS STATUS
+        // ================================================
+
+        new Chart(
+            document.getElementById(
+                "crsStatusChart"
+            ),
+            {
+                type: "doughnut",
+
+                data: {
+                    labels:
+                        chartData
+                        .crs_status
+                        .labels,
+
+                    datasets: [
+                        {
+                            data:
+                                chartData
+                                .crs_status
+                                .values,
+
+                            backgroundColor: [
+                                "#dc2626",
+                                "#ea580c",
+                                "#ca8a04",
+                                "#2563eb",
+                                "#7c3aed",
+                                "#0891b2",
+                                "#16a34a",
+                            ],
+
+                            borderWidth: 1,
+                        }
+                    ],
+                },
+
+                options: {
+                    responsive: true,
+
+                    maintainAspectRatio:
+                        false,
+
+                    plugins: {
+                        legend: {
+                            position:
+                                "bottom",
+                        }
+                    },
+                },
+            }
+        );
+
+    }
+);
+
+</script>
+
+{% endblock %}

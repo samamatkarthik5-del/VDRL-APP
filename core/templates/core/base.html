@@ -1,0 +1,182 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}
+            VDRL Management System
+        {% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'core/css/app.css' %}"
+    >
+</head>
+
+<body>
+
+    <header class="topbar">
+
+        <div class="brand">
+            <a href="{% url 'core:dashboard' %}">
+                VDRL Management System
+            </a>
+        </div>
+
+        {% if user.is_authenticated %}
+
+           <nav class="topbar-actions">
+
+    {% if user.is_authenticated %}
+
+        <span class="user-name">
+            {{ user.get_full_name|default:user.username }}
+        </span>
+
+
+        <a
+            href="{% url 'core:notification_list' %}"
+            class="nav-link notification-nav-link"
+        >
+            Notifications
+
+            {% if unread_notification_count %}
+
+                <span class="notification-count">
+
+                    {% if unread_notification_count > 99 %}
+                        99+
+                    {% else %}
+                        {{ unread_notification_count }}
+                    {% endif %}
+
+                </span>
+
+            {% endif %}
+
+        </a>
+
+
+        {% if perms.core.bulk_import_vdrl_data %}
+
+            <a
+                href="{% url 'core:import_center' %}"
+                class="nav-link"
+            >
+                Import
+            </a>
+
+        {% endif %}
+
+
+        {% if perms.core.view_management_reports %}
+
+            <a
+                href="{% url 'core:advanced_dashboard' %}"
+                class="nav-link"
+            >
+                Analytics
+            </a>
+
+            <a
+                href="{% url 'core:management_reports' %}"
+                class="nav-link"
+            >
+                Reports
+            </a>
+
+        {% endif %}
+
+
+        {% if perms.core.view_audit_log %}
+
+            <a
+                href="{% url 'core:audit_log_list' %}"
+                class="nav-link"
+            >
+                Audit
+            </a>
+
+        {% endif %}
+
+
+        {% if user.is_staff %}
+
+            <a
+                href="/admin/"
+                class="nav-link"
+            >
+                Admin
+            </a>
+
+        {% endif %}
+
+
+        <form
+            method="post"
+            action="{% url 'logout' %}"
+            class="logout-form"
+        >
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                class="logout-button"
+            >
+                Logout
+            </button>
+
+        </form>
+
+    {% endif %}
+
+</nav>
+
+        {% endif %}
+
+    </header>
+
+
+    {% if messages %}
+
+        <div class="message-container">
+
+            {% for message in messages %}
+
+                <div
+                    class="
+                        alert
+                        alert-{{ message.tags }}
+                    "
+                >
+                    {{ message }}
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% endif %}
+
+
+    <main class="page-container">
+
+        {% block content %}
+        {% endblock %}
+
+    </main>
+
+</body>
+
+</html>

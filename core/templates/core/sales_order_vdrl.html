@@ -1,0 +1,601 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+{{ sales_order.sales_order_number }} | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="breadcrumb">
+
+    <a href="{% url 'core:dashboard' %}">
+        Dashboard
+    </a>
+
+    <span>/</span>
+
+    <span>
+        {{ sales_order.sales_order_number }}
+    </span>
+
+</div>
+
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            {{ sales_order.sales_order_number }}
+        </h1>
+
+        <p class="muted">
+
+            {{ sales_order.customer.name }}
+
+            {% if sales_order.project %}
+
+                · {{ sales_order.project.project_name }}
+
+            {% endif %}
+
+        </p>
+
+    </div>
+
+</div>
+
+
+{% if not vdrl %}
+
+    <section class="panel">
+
+        <div class="empty-state">
+
+            <h2>
+                No current VDRL found
+            </h2>
+
+            <p>
+                Create a Sales Order VDRL and generate its documents
+                from the customer template.
+            </p>
+
+            {% if user.is_staff %}
+
+                <a
+                    href="/admin/core/salesordervdrl/add/"
+                    class="button button-primary"
+                >
+                    Create VDRL in Admin
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+{% else %}
+
+
+<div class="vdrl-summary">
+
+    <div>
+        <span class="summary-label">
+            VDRL Number
+        </span>
+
+        <strong>
+            {{ vdrl.vdrl_number }}
+        </strong>
+    </div>
+
+
+    <div>
+        <span class="summary-label">
+            Revision
+        </span>
+
+        <strong>
+            {{ vdrl.revision }}
+        </strong>
+    </div>
+
+
+    <div>
+        <span class="summary-label">
+            Status
+        </span>
+
+        <strong>
+            {{ vdrl.get_status_display }}
+        </strong>
+    </div>
+
+</div>
+
+
+<div class="stat-grid stat-grid-small">
+
+    <div class="stat-card">
+
+        <div class="stat-label">
+            Total
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.total }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-green">
+
+        <div class="stat-label">
+            Approved
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.approved }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-blue">
+
+        <div class="stat-label">
+            With Customer
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.with_customer }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-purple">
+
+        <div class="stat-label">
+            Internal
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.internal }}
+        </div>
+
+    </div>
+
+</div>
+
+
+<section class="panel">
+
+    <form
+        method="get"
+        class="filter-form"
+    >
+
+        <div>
+
+            <label>
+                Search
+            </label>
+
+            <input
+                type="text"
+                name="q"
+                value="{{ search_text }}"
+                placeholder="Document code or title"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Status
+            </label>
+
+            <select
+                name="status"
+                class="form-control"
+            >
+
+                <option value="">
+                    All Statuses
+                </option>
+
+                {% for value, label in status_choices %}
+
+                    <option
+                        value="{{ value }}"
+                        {% if status_filter == value %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ label }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Department
+            </label>
+
+            <select
+                name="department"
+                class="form-control"
+            >
+
+                <option value="">
+                    All Departments
+                </option>
+
+                {% for department in departments %}
+
+                    <option
+                        value="{{ department.pk }}"
+                        {% if department_filter == department.pk|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ department.name }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Current Holder
+            </label>
+
+            <select
+                name="holder"
+                class="form-control"
+            >
+
+                <option value="">
+                    All
+                </option>
+
+                <option
+                    value="INTERNAL"
+                    {% if holder_filter == "INTERNAL" %}
+                        selected
+                    {% endif %}
+                >
+                    Internal
+                </option>
+
+                <option
+                    value="CUSTOMER"
+                    {% if holder_filter == "CUSTOMER" %}
+                        selected
+                    {% endif %}
+                >
+                    Customer
+                </option>
+
+                <option
+                    value="COMPLETED"
+                    {% if holder_filter == "COMPLETED" %}
+                        selected
+                    {% endif %}
+                >
+                    Completed
+                </option>
+
+                <option
+                    value="ON_HOLD"
+                    {% if holder_filter == "ON_HOLD" %}
+                        selected
+                    {% endif %}
+                >
+                    On Hold
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Overdue
+            </label>
+
+            <select
+                name="overdue"
+                class="form-control"
+            >
+
+                <option value="">
+                    All
+                </option>
+
+                <option
+                    value="YES"
+                    {% if overdue_filter == "YES" %}
+                        selected
+                    {% endif %}
+                >
+                    Overdue Only
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="filter-actions">
+
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Apply
+            </button>
+
+          {% if document.can_edit_details %}
+
+    <a
+        href="{% url 'core:document_edit' document.pk %}"
+        class="button button-small"
+    >
+        Edit
+    </a>
+
+{% endif %}
+
+        </div>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="table-container">
+
+        <table class="vdrl-table">
+
+            <thead>
+
+                <tr>
+                    <th>Seq.</th>
+                    <th>Customer Document Code</th>
+                    <th>Document</th>
+                    <th>Planned Date</th>
+                    <th>Revision</th>
+                    <th>Status</th>
+                    <th>Holder</th>
+                    <th>Aging</th>
+                    <th>Responsible</th>
+                    <th>Latest File</th>
+                    <th>Actions</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for document in documents %}
+
+                    <tr>
+
+                        <td>
+                            {{ document.sequence_number }}
+                        </td>
+
+
+                        <td>
+
+                            {% if document.customer_document_code %}
+
+                                <strong>
+                                    {{ document.customer_document_code }}
+                                </strong>
+
+                            {% else %}
+
+                                <span class="warning-text">
+                                    Not Assigned
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <a
+                                href="{% url 'core:document_detail' document.pk %}"
+                                class="document-link"
+                            >
+                                {{ document.document_title }}
+                            </a>
+
+                            <div class="small-muted">
+                                {{ document.document.internal_document_code }}
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            {{ document.planned_submission_date|default:"-" }}
+
+                        </td>
+
+
+                        <td>
+                            {{ document.current_revision }}
+                        </td>
+
+
+                        <td>
+
+                            <span
+                                class="
+                                    status-badge
+                                    status-{{ document.status|lower }}
+                                "
+                            >
+                                {{ document.get_status_display }}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+                            {{ document.current_holder }}
+                        </td>
+
+
+                        <td>
+
+                            {% if document.current_holder != "Completed" %}
+
+                                {{ document.current_aging_days }}
+                                days
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            {% if document.responsible_person %}
+
+                                {{ document.responsible_person.get_full_name|default:document.responsible_person.username }}
+
+                            {% elif document.responsible_department %}
+
+                                {{ document.responsible_department.name }}
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </td>
+
+<td>
+
+    {% if document.default_open_file %}
+
+        <a
+            href="{% url 'core:document_file_open' document.default_open_file.pk %}"
+            class="button button-small button-primary"
+            target="_blank"
+        >
+            Open File
+        </a>
+
+        <div class="small-muted">
+
+            {{ document.default_open_file.get_file_type_display }}
+
+            · Rev.
+            {{ document.default_open_file.revision }}
+
+        </div>
+
+    {% else %}
+
+        <span class="small-muted">
+            No file
+        </span>
+
+    {% endif %}
+
+</td>
+                        <td class="actions-cell">
+
+                            <a
+                                href="{% url 'core:document_detail' document.pk %}"
+                                class="button button-small"
+                            >
+                                View
+                            </a>
+
+                            <a
+                                href="{% url 'core:document_edit' document.pk %}"
+                                class="button button-small"
+                            >
+                                Edit
+                            </a>
+
+
+                            {% for action in document.available_actions %}
+
+                                <a
+                                    href="{% url 'core:document_action' document.pk action.value %}"
+                                    class="button button-small button-primary"
+                                >
+                                    {{ action.label }}
+                                </a>
+
+                            {% endfor %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="10"
+                            class="empty-state"
+                        >
+                            No documents match the selected filters.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endif %}
+
+{% endblock %}

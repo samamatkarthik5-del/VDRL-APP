@@ -1,0 +1,621 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+Dashboard | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            VDRL Dashboard
+        </h1>
+
+        <p class="muted">
+            Document status and action overview as of
+            {{ today }}
+        </p>
+
+    </div>
+
+
+    <div class="header-actions">
+        {% if perms.core.view_management_reports %}
+
+    <a
+        href="{% url 'core:advanced_dashboard' %}"
+        class="button button-primary"
+    >
+        Advanced Analytics
+    </a>
+
+{% endif %}
+
+{% if perms.core.view_management_reports %}
+
+    <a
+        href="{% url 'core:management_reports' %}"
+        class="button button-primary"
+    >
+        Management Reports
+    </a>
+
+{% endif %}
+    </div>
+
+</div>
+<div class="stat-grid">
+
+    <div class="stat-card">
+
+        <div class="stat-label">
+            Total Documents
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.total_documents }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-green">
+
+        <div class="stat-label">
+            Approved
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.approved_documents }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-blue">
+
+        <div class="stat-label">
+            With Customer
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.with_customer }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-purple">
+
+        <div class="stat-label">
+            Internal Pending
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.internal_pending }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-red">
+
+        <div class="stat-label">
+            Overdue
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.overdue_documents }}
+        </div>
+
+    </div>
+
+
+    <div class="stat-card stat-grey">
+
+        <div class="stat-label">
+            On Hold
+        </div>
+
+        <div class="stat-value">
+            {{ statistics.on_hold }}
+        </div>
+
+    </div>
+
+    <div class="stat-card stat-orange">
+
+    <div class="stat-label">
+        Open CRS Comments
+    </div>
+
+    <div class="stat-value">
+        {{ statistics.open_crs_comments }}
+    </div>
+
+</div>
+
+
+<div class="stat-card stat-red">
+
+    <div class="stat-label">
+        Overdue CRS Comments
+    </div>
+
+    <div class="stat-value">
+        {{ statistics.overdue_crs_comments }}
+    </div>
+
+</div>
+
+</div>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            My Pending Actions
+        </h2>
+
+    </div>
+
+    <section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            My Open CRS Comments
+        </h2>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Sales Order</th>
+                    <th>Document</th>
+                    <th>Comment No.</th>
+                    <th>Customer Comment</th>
+                    <th>Decision</th>
+                    <th>Status</th>
+                    <th>Target Date</th>
+                    <th>Aging</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for comment in my_crs_comments %}
+
+                    <tr
+                        {% if comment.is_overdue %}
+                            class="row-overdue"
+                        {% endif %}
+                    >
+
+                        <td>
+                            {{ comment.crs.document.vdrl.sales_order.sales_order_number }}
+                        </td>
+
+
+                        <td>
+                            {{ comment.crs.document.document_title }}
+                        </td>
+
+
+                        <td>
+                            {{ comment.comment_number }}
+                        </td>
+
+
+                        <td class="comment-text-cell">
+                            {{ comment.customer_comment }}
+                        </td>
+
+
+                        <td>
+                            {{ comment.get_decision_display }}
+                        </td>
+
+
+                        <td>
+                            {{ comment.get_status_display }}
+                        </td>
+
+
+                        <td>
+                            {{ comment.target_response_date|default:"-" }}
+                        </td>
+
+
+                        <td>
+
+                            {{ comment.aging_days }}
+                            days
+
+                            {% if comment.is_overdue %}
+
+                                <div class="warning-text">
+                                    Overdue
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <a
+                                href="{% url 'core:crs_comment_edit' comment.pk %}"
+                                class="button button-small button-primary"
+                            >
+                                Open
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="9"
+                            class="empty-state"
+                        >
+                            No open CRS comments assigned to you.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Sales Order</th>
+                    <th>Document</th>
+                    <th>Status</th>
+                    <th>Planned Date</th>
+                    <th>Aging</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for document in my_actions %}
+
+                    <tr>
+
+                        <td>
+                            {{ document.vdrl.sales_order.sales_order_number }}
+                        </td>
+
+                        <td>
+                            {{ document.document_title }}
+                        </td>
+
+                        <td>
+
+                            <span
+                                class="
+                                    status-badge
+                                    status-{{ document.status|lower }}
+                                "
+                            >
+                                {{ document.get_status_display }}
+                            </span>
+
+                        </td>
+
+                        <td>
+                            {{ document.planned_submission_date|default:"-" }}
+                        </td>
+
+                        <td>
+                            {{ document.current_aging_days }}
+                            days
+                        </td>
+
+                        <td>
+
+                            <a
+                                href="{% url 'core:document_detail' document.pk %}"
+                                class="button button-small"
+                            >
+                                Open
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            class="empty-state"
+                        >
+                            No pending actions assigned to you.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            Overdue Documents
+        </h2>
+
+    </div>
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Sales Order</th>
+                    <th>Customer</th>
+                    <th>Document</th>
+                    <th>Status</th>
+                    <th>Holder</th>
+                    <th>Planned / Due Date</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for document in overdue_documents %}
+
+                    <tr>
+
+                        <td>
+                            {{ document.vdrl.sales_order.sales_order_number }}
+                        </td>
+
+                        <td>
+                            {{ document.vdrl.sales_order.customer.name }}
+                        </td>
+
+                        <td>
+                            {{ document.document_title }}
+                        </td>
+
+                        <td>
+
+                            <span
+                                class="
+                                    status-badge
+                                    status-{{ document.status|lower }}
+                                "
+                            >
+                                {{ document.get_status_display }}
+                            </span>
+
+                        </td>
+
+                        <td>
+                            {{ document.current_holder }}
+                        </td>
+
+                        <td>
+
+                            {% if document.current_holder == "Customer" %}
+
+                                {{ document.customer_review_due_date|default:"-" }}
+
+                            {% else %}
+
+                                {{ document.planned_submission_date|default:"-" }}
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            <a
+                                href="{% url 'core:document_detail' document.pk %}"
+                                class="button button-small button-danger"
+                            >
+                                Review
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="7"
+                            class="empty-state"
+                        >
+                            No overdue documents.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            Active Sales Orders
+        </h2>
+
+    </div>
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Sales Order</th>
+                    <th>Customer</th>
+                    <th>Project</th>
+                    <th>Documents</th>
+                    <th>Approved</th>
+                    <th>With Customer</th>
+                    <th>Progress</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for row in sales_order_rows %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ row.sales_order.sales_order_number }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ row.sales_order.customer.name }}
+                        </td>
+
+                        <td>
+                            {{ row.sales_order.project|default:"-" }}
+                        </td>
+
+                        <td>
+                            {{ row.total_count }}
+                        </td>
+
+                        <td>
+                            {{ row.approved_count }}
+                        </td>
+
+                        <td>
+                            {{ row.customer_count }}
+                        </td>
+
+                        <td>
+
+                            <div class="progress-wrapper">
+
+                                <div class="progress-bar">
+
+                                    <div
+                                        class="progress-fill"
+                                        style="width: {{ row.progress }}%;"
+                                    >
+                                    </div>
+
+                                </div>
+
+                                <span>
+                                    {{ row.progress }}%
+                                </span>
+
+                            </div>
+
+                        </td>
+
+                        <td>
+
+                            <a
+                                href="{% url 'core:sales_order_vdrl' row.sales_order.pk %}"
+                                class="button button-small button-primary"
+                            >
+                                Open VDRL
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="8"
+                            class="empty-state"
+                        >
+                            No active Sales Orders.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}

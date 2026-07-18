@@ -1,0 +1,823 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+{{ document.document_title }} | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="breadcrumb">
+
+    <a href="{% url 'core:dashboard' %}">
+        Dashboard
+    </a>
+
+    <span>/</span>
+
+    <a
+        href="{% url 'core:sales_order_vdrl' document.vdrl.sales_order.pk %}"
+    >
+        {{ document.vdrl.sales_order.sales_order_number }}
+    </a>
+
+    <span>/</span>
+
+    <span>
+        {{ document.document_title }}
+    </span>
+
+</div>
+
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            {{ document.document_title }}
+        </h1>
+
+        <p class="muted">
+
+            {{ document.vdrl.sales_order.sales_order_number }}
+
+            {% if document.customer_document_code %}
+
+                · {{ document.customer_document_code }}
+
+            {% endif %}
+
+        </p>
+
+    </div>
+
+
+    <div class="header-actions">
+
+     {% if can_edit_document_details %}
+
+    <a
+        href="{% url 'core:document_edit' document.pk %}"
+        class="button"
+    >
+        Edit Document
+    </a>
+
+{% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="document-summary-grid">
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Current Status
+        </span>
+
+        <span
+            class="
+                status-badge
+                status-{{ document.status|lower }}
+            "
+        >
+            {{ document.get_status_display }}
+        </span>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Current Holder
+        </span>
+
+        <strong>
+            {{ document.current_holder }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Current Revision
+        </span>
+
+        <strong>
+            {{ document.current_revision }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Current Cycle
+        </span>
+
+        <strong>
+            {{ document.current_cycle }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Current Aging
+        </span>
+
+        <strong>
+            {{ document.current_aging_days }}
+            days
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Internal Time
+        </span>
+
+        <strong>
+            {{ document.total_internal_days }}
+            days
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Customer Time
+        </span>
+
+        <strong>
+            {{ document.total_customer_days }}
+            days
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Customer Review Due
+        </span>
+
+        <strong>
+            {{ document.customer_review_due_date|default:"-" }}
+        </strong>
+
+    </div>
+
+</div>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            Available Actions
+        </h2>
+
+    </div>
+<section class="panel">
+
+    <div class="panel-header panel-header-actions">
+
+        <div>
+
+            <h2>
+                Document Files
+            </h2>
+
+        </div>
+
+
+        <div>
+
+          {% if can_manage_files %}
+
+    <a
+        href="{% url 'core:document_file_upload' document.pk %}"
+        class="button button-primary"
+    >
+        Upload File
+    </a>
+
+{% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>File Type</th>
+                    <th>Revision</th>
+                    <th>Cycle</th>
+                    <th>Original Filename</th>
+                    <th>Size</th>
+                    <th>Uploaded</th>
+                    <th>Uploaded By</th>
+                    <th>Current</th>
+                    <th>Actions</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for file_record in files %}
+
+                    <tr>
+
+                        <td>
+                            {{ file_record.get_file_type_display }}
+                        </td>
+
+
+                        <td>
+                            {{ file_record.revision|default:"-" }}
+                        </td>
+
+
+                        <td>
+                            {{ file_record.cycle_number }}
+                        </td>
+
+
+                        <td>
+
+                            <strong>
+                                {{ file_record.original_filename }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+                            {{ file_record.file_size_mb }}
+                            MB
+                        </td>
+
+
+                        <td>
+                            {{ file_record.uploaded_at }}
+                        </td>
+
+
+                        <td>
+
+                            {% if file_record.uploaded_by %}
+
+                                {{ file_record.uploaded_by.get_full_name|default:file_record.uploaded_by.username }}
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            {% if file_record.is_current %}
+
+                                <span class="current-file-badge">
+                                    Current
+                                </span>
+
+                            {% else %}
+
+                                <span class="small-muted">
+                                    Previous
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td class="actions-cell">
+
+                            <a
+                                href="{% url 'core:document_file_open' file_record.pk %}"
+                                class="button button-small button-primary"
+                                target="_blank"
+                            >
+                                Open
+                            </a>
+
+
+                            <a
+                                href="{% url 'core:document_file_download' file_record.pk %}"
+                                class="button button-small"
+                            >
+                                Download
+                            </a>
+
+
+                            {% if can_manage_files and not file_record.is_current %}
+
+                                <form
+                                    method="post"
+                                    action="{% url 'core:document_file_set_current' file_record.pk %}"
+                                    class="inline-form"
+                                >
+
+                                    {% csrf_token %}
+
+                                    <button
+                                        type="submit"
+                                        class="button button-small"
+                                    >
+                                        Set Current
+                                    </button>
+
+                                </form>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="9"
+                            class="empty-state"
+                        >
+                            No document files have been uploaded.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+    <div class="action-buttons">
+
+        {% for action in available_actions %}
+
+            <a
+                href="{% url 'core:document_action' document.pk action.value %}"
+                class="button button-primary"
+            >
+                {{ action.label }}
+            </a>
+
+        {% empty %}
+
+            <span class="muted">
+                No further workflow actions available.
+            </span>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            Document Information
+        </h2>
+
+    </div>
+
+    <div class="info-grid">
+
+        <div>
+            <span class="detail-label">
+                Customer Document Code
+            </span>
+
+            <strong>
+                {{ document.customer_document_code|default:"Not assigned" }}
+            </strong>
+        </div>
+
+
+        <div>
+            <span class="detail-label">
+                Internal Document Code
+            </span>
+
+            <strong>
+                {{ document.document.internal_document_code }}
+            </strong>
+        </div>
+
+
+        <div>
+            <span class="detail-label">
+                Planned Submission
+            </span>
+
+            <strong>
+                {{ document.planned_submission_date|default:"-" }}
+            </strong>
+        </div>
+
+
+        <div>
+            <span class="detail-label">
+                Forecast Submission
+            </span>
+
+            <strong>
+                {{ document.forecast_submission_date|default:"-" }}
+            </strong>
+        </div>
+
+
+        <div>
+            <span class="detail-label">
+                Responsible Department
+            </span>
+
+            <strong>
+                {{ document.responsible_department|default:"-" }}
+            </strong>
+        </div>
+
+
+        <div>
+            <span class="detail-label">
+                Responsible Person
+            </span>
+
+            <strong>
+
+                {% if document.responsible_person %}
+
+                    {{ document.responsible_person.get_full_name|default:document.responsible_person.username }}
+
+                {% else %}
+
+                    -
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+            <span class="detail-label">
+                First Submission
+            </span>
+
+            <strong>
+                {{ document.first_submission_at|default:"-" }}
+            </strong>
+        </div>
+
+
+        <div>
+            <span class="detail-label">
+                Final Approval
+            </span>
+
+            <strong>
+                {{ document.final_approval_at|default:"-" }}
+            </strong>
+        </div>
+
+    </div>
+
+</section>
+
+<section class="panel">
+
+    <div class="panel-header panel-header-actions">
+
+        <div>
+
+            <h2>
+                Comments Resolution Sheets
+            </h2>
+
+        </div>
+
+
+        <div>
+
+            {% if can_manage_crs %}
+
+    <a
+        href="{% url 'core:crs_create' document.pk %}"
+        class="button button-primary"
+    >
+        Create CRS
+    </a>
+
+{% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>CRS Reference</th>
+                    <th>Cycle</th>
+                    <th>Revision</th>
+                    <th>Status</th>
+                    <th>Expected</th>
+                    <th>Entered</th>
+                    <th>Open</th>
+                    <th>Closed</th>
+                    <th>Overdue</th>
+                    <th>Progress</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for crs in crs_registers %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+                                {{ crs.crs_reference|default:"Not assigned" }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+                            {{ crs.cycle_number }}
+                        </td>
+
+
+                        <td>
+                            {{ crs.document_revision }}
+                        </td>
+
+
+                        <td>
+                            {{ crs.get_status_display }}
+                        </td>
+
+
+                        <td>
+                            {{ crs.expected_comment_count }}
+                        </td>
+
+
+                        <td>
+                            {{ crs.total_comments }}
+                        </td>
+
+
+                        <td>
+                            {{ crs.open_comments }}
+                        </td>
+
+
+                        <td>
+                            {{ crs.closed_comments }}
+                        </td>
+
+
+                        <td>
+
+                            {% if crs.overdue_comments %}
+
+                                <span class="warning-text">
+                                    {{ crs.overdue_comments }}
+                                </span>
+
+                            {% else %}
+
+                                0
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ crs.progress_percent }}%
+                        </td>
+
+
+                        <td>
+
+                            <a
+                                href="{% url 'core:crs_detail' crs.pk %}"
+                                class="button button-small button-primary"
+                            >
+                                Open CRS
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="11"
+                            class="empty-state"
+                        >
+                            No CRS register has been created.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            Transaction History
+        </h2>
+
+    </div>
+
+    <div class="timeline">
+
+        {% for transaction in transactions %}
+
+            <div class="timeline-item">
+
+                <div class="timeline-marker">
+                </div>
+
+                <div class="timeline-content">
+
+                    <div class="timeline-header">
+
+                        <strong>
+                            {{ transaction.get_transaction_type_display }}
+                        </strong>
+
+                        <span class="muted">
+                            {{ transaction.transaction_at }}
+                        </span>
+
+                    </div>
+
+
+                    <div class="timeline-details">
+
+                        <span>
+                            Cycle:
+                            {{ transaction.cycle_number }}
+                        </span>
+
+                        <span>
+                            Revision:
+                            {{ transaction.revision|default:"-" }}
+                        </span>
+
+                        <span>
+                            Holder after event:
+                            {{ transaction.get_holder_after_event_display }}
+                        </span>
+
+                    </div>
+
+
+                    {% if transaction.elapsed_holder_type %}
+
+                        <div class="elapsed-info">
+
+                            Previous period:
+
+                            <strong>
+                                {{ transaction.elapsed_calendar_days }}
+                                days
+                            </strong>
+
+                            with
+
+                            <strong>
+                                {{ transaction.get_elapsed_holder_type_display }}
+                            </strong>
+
+                            {% if transaction.elapsed_responsible_person %}
+
+                                —
+                                {{ transaction.elapsed_responsible_person.get_full_name|default:transaction.elapsed_responsible_person.username }}
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
+
+
+                    {% if transaction.customer_comment_count %}
+
+                        <p>
+                            Customer Comments:
+                            <strong>
+                                {{ transaction.customer_comment_count }}
+                            </strong>
+                        </p>
+
+                    {% endif %}
+
+
+                    {% if transaction.crs_reference %}
+
+                        <p>
+                            CRS:
+                            <strong>
+                                {{ transaction.crs_reference }}
+                            </strong>
+                        </p>
+
+                    {% endif %}
+
+
+                    {% if transaction.remarks %}
+
+                        <p>
+                            {{ transaction.remarks }}
+                        </p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        {% empty %}
+
+            <div class="empty-state">
+                No transactions recorded yet.
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
+{% endblock %}

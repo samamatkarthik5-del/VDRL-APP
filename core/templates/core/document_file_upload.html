@@ -1,0 +1,173 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+Upload File | {{ document.document_title }}
+{% endblock %}
+
+
+{% block content %}
+
+<div class="breadcrumb">
+
+    <a
+        href="{% url 'core:document_detail' document.pk %}"
+    >
+        Back to Document
+    </a>
+
+</div>
+
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            Upload Document File
+        </h1>
+
+        <p class="muted">
+            {{ document.vdrl.sales_order.sales_order_number }}
+            ·
+            {{ document.document_title }}
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="action-preview">
+
+    <div>
+
+        <span class="detail-label">
+            Customer Document Code
+        </span>
+
+        <strong>
+            {{ document.customer_document_code|default:"Not assigned" }}
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span class="detail-label">
+            Current Revision
+        </span>
+
+        <strong>
+            {{ document.current_revision }}
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span class="detail-label">
+            Current Cycle
+        </span>
+
+        <strong>
+            {{ document.current_cycle }}
+        </strong>
+
+    </div>
+
+
+    <div>
+
+        <span class="detail-label">
+            Current Status
+        </span>
+
+        <strong>
+            {{ document.get_status_display }}
+        </strong>
+
+    </div>
+
+</div>
+
+
+<section class="panel form-panel">
+
+    <form
+        method="post"
+        enctype="multipart/form-data"
+    >
+
+        {% csrf_token %}
+
+
+        {% if form.non_field_errors %}
+
+            <div class="alert alert-error">
+
+                {{ form.non_field_errors }}
+
+            </div>
+
+        {% endif %}
+
+
+        {% for field in form %}
+
+            <div class="form-group">
+
+                <label for="{{ field.id_for_label }}">
+                    {{ field.label }}
+                </label>
+
+                {{ field }}
+
+
+                {% if field.help_text %}
+
+                    <div class="help-text">
+                        {{ field.help_text }}
+                    </div>
+
+                {% endif %}
+
+
+                {% for error in field.errors %}
+
+                    <div class="field-error">
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endfor %}
+
+
+        <div class="form-actions">
+
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Upload File
+            </button>
+
+            <a
+                href="{% url 'core:document_detail' document.pk %}"
+                class="button"
+            >
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}
