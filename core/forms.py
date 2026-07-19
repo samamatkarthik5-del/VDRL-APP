@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from certifi.__main__ import args
 from django.core.exceptions import ValidationError
 from django import forms
 from django.contrib.auth import get_user_model
@@ -158,23 +159,31 @@ class DocumentTransactionActionForm(forms.ModelForm):
                 }
             ),
         }
-
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.fields["transaction_at"].input_formats = [
             "%Y-%m-%dT%H:%M"
-        ]
+    ]
 
         self.fields[
-            "responsible_person_after_event"
-        ].queryset = User.objects.filter(
-            is_active=True
-        ).order_by(
-            "first_name",
-            "last_name",
-            "username",
-        )
+        "responsible_person_after_event"
+    ].queryset = User.objects.filter(
+        is_active=True
+    ).order_by(
+        "first_name",
+        "last_name",
+        "username",
+    )
+
+    # This field is hidden for most workflow actions.
+        self.fields["customer_comment_count"].required = False
+        self.fields["customer_comment_count"].initial = 0
+
+
+def clean_customer_comment_count(self):
+    return self.cleaned_data.get("customer_comment_count") or 0
 
 class DocumentFileUploadForm(forms.ModelForm):
     """
