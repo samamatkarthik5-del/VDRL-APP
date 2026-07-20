@@ -37,6 +37,13 @@
 
            <nav class="topbar-actions">
 
+        <a
+    href="{% url 'core:my_work_bucket' %}"
+    class="nav-link"
+>
+    My Work Bucket
+</a>
+
     {% if user.is_authenticated %}
 
         <span class="user-name">

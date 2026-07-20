@@ -1,4 +1,6 @@
-from django.db.models import Q
+from django.contrib.auth.models import (
+    AnonymousUser,
+)
 
 from .models import (
     SalesOrder,
@@ -6,34 +8,35 @@ from .models import (
 )
 
 
-ROLE_MANAGEMENT = "VDRL Management"
+ROLE_VDRL_MANAGEMENT = "VDRL Management"
 
-ROLE_PROJECT_MANAGER = (
-    "Project Managers"
-)
+ROLE_PROJECT_MANAGERS = "Project Managers"
 
-ROLE_DOCUMENT_CONTROLLER = (
+ROLE_DOCUMENT_CONTROLLERS = (
     "Document Controllers"
 )
 
-ROLE_DEPARTMENT_MANAGER = (
+ROLE_DEPARTMENT_MANAGERS = (
     "Department Managers"
 )
 
-ROLE_CONTRIBUTOR = (
-    "Contributors"
-)
+ROLE_CONTRIBUTORS = "Contributors"
 
-ROLE_VIEWER = (
-    "VDRL Viewers"
-)
+ROLE_VDRL_VIEWERS = "VDRL Viewers"
 
 
 def user_in_group(
     user,
     group_name,
 ):
-    if not user.is_authenticated:
+    if (
+        not user
+        or isinstance(
+            user,
+            AnonymousUser,
+        )
+        or not user.is_authenticated
+    ):
         return False
 
     return (
@@ -45,123 +48,82 @@ def user_in_group(
     )
 
 
-def get_user_department(user):
+def get_user_department(
+    user,
+):
     """
-    Return the user's EmployeeProfile department,
-    or None when no profile/department exists.
+    Retained for forms, reports and display.
+
+    Department membership no longer grants
+    visibility to Sales Orders or documents.
     """
 
-    if not user.is_authenticated:
+    if (
+        not user
+        or not user.is_authenticated
+    ):
         return None
 
     try:
-        profile = user.employee_profile
+        return (
+            user
+            .employee_profile
+            .department
+        )
 
-    except Exception:
+    except (
+        AttributeError,
+        ObjectDoesNotExist,
+    ):
         return None
 
-    return profile.department
+
+# Import here to support ObjectDoesNotExist above.
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+)
 
 
-def user_has_global_vdrl_access(user):
-    """
-    Superusers and users with the global VDRL
-    permission can access all operational records.
-    """
+# =========================================================
+# GLOBAL ACCESS
+# =========================================================
 
-    if not user.is_authenticated:
-        return False
-
-    if user.is_superuser:
-        return True
-
-    return user.has_perm(
-        "core.view_all_vdrl_data"
-    )
-
-
-def filter_documents_for_user(
+def user_has_global_vdrl_access(
     user,
-    queryset=None,
 ):
     """
-    Return only VDRL documents that the user is
-    permitted to see.
+    Only superusers or users with the explicit
+    global permission may view every Sales Order.
+
+    Group membership alone does not grant global
+    record visibility.
     """
 
-    if queryset is None:
-        queryset = (
-            SalesOrderVDRLDocument
-            .objects
-            .all()
-        )
-
-    if not user.is_authenticated:
-        return queryset.none()
-
-    if user_has_global_vdrl_access(
-        user
+    if (
+        not user
+        or not user.is_authenticated
     ):
-        return queryset
+        return False
 
-    department = get_user_department(
-        user
-    )
-
-    access_query = (
-        Q(
-            vdrl__sales_order__project_manager=(
-                user
-            )
-        )
-        |
-        Q(
-            vdrl__sales_order__document_controller=(
-                user
-            )
-        )
-        |
-        Q(
-            responsible_person=user
-        )
-        |
-        Q(
-            crs_registers__comments__assigned_person=(
-                user
-            )
+    return bool(
+        user.is_superuser
+        or user.has_perm(
+            "core.view_all_vdrl_data"
         )
     )
 
-    if department:
-        access_query |= (
-            Q(
-                responsible_department=(
-                    department
-                )
-            )
-            |
-            Q(
-                crs_registers__comments__assigned_department=(
-                    department
-                )
-            )
-        )
 
-    return (
-        queryset
-        .filter(
-            access_query
-        )
-        .distinct()
-    )
-
+# =========================================================
+# SALES ORDER FILTERING
+# =========================================================
 
 def filter_sales_orders_for_user(
     user,
     queryset=None,
 ):
     """
-    Return only Sales Orders related to the user.
+    Restrict normal users to Sales Orders where
+    they appear in authorized_users.
     """
 
     if queryset is None:
@@ -171,7 +133,10 @@ def filter_sales_orders_for_user(
             .all()
         )
 
-    if not user.is_authenticated:
+    if (
+        not user
+        or not user.is_authenticated
+    ):
         return queryset.none()
 
     if user_has_global_vdrl_access(
@@ -179,51 +144,10 @@ def filter_sales_orders_for_user(
     ):
         return queryset
 
-    department = get_user_department(
-        user
-    )
-
-    access_query = (
-        Q(
-            project_manager=user
-        )
-        |
-        Q(
-            document_controller=user
-        )
-        |
-        Q(
-            vdrls__documents__responsible_person=(
-                user
-            )
-        )
-        |
-        Q(
-            vdrls__documents__crs_registers__comments__assigned_person=(
-                user
-            )
-        )
-    )
-
-    if department:
-        access_query |= (
-            Q(
-                vdrls__documents__responsible_department=(
-                    department
-                )
-            )
-            |
-            Q(
-                vdrls__documents__crs_registers__comments__assigned_department=(
-                    department
-                )
-            )
-        )
-
     return (
         queryset
         .filter(
-            access_query
+            authorized_users=user
         )
         .distinct()
     )
@@ -233,7 +157,7 @@ def can_view_sales_order(
     user,
     sales_order,
 ):
-    if not user.is_authenticated:
+    if sales_order is None:
         return False
 
     return (
@@ -247,11 +171,53 @@ def can_view_sales_order(
     )
 
 
+# =========================================================
+# DOCUMENT FILTERING
+# =========================================================
+
+def filter_documents_for_user(
+    user,
+    queryset=None,
+):
+    """
+    Restrict documents through the related
+    Sales Order's authorized_users field.
+    """
+
+    if queryset is None:
+        queryset = (
+            SalesOrderVDRLDocument
+            .objects
+            .all()
+        )
+
+    if (
+        not user
+        or not user.is_authenticated
+    ):
+        return queryset.none()
+
+    if user_has_global_vdrl_access(
+        user
+    ):
+        return queryset
+
+    return (
+        queryset
+        .filter(
+            vdrl__sales_order__authorized_users=(
+                user
+            )
+        )
+        .distinct()
+    )
+
+
 def can_view_document(
     user,
     document,
 ):
-    if not user.is_authenticated:
+    if document is None:
         return False
 
     return (
@@ -269,20 +235,24 @@ def can_view_document(
     )
 
 
+# =========================================================
+# ACTION PERMISSIONS
+# =========================================================
+
 def can_edit_document_details(
     user,
     document,
 ):
-    return (
-        user.has_perm(
+    return bool(
+        can_view_document(
+            user,
+            document,
+        )
+        and user.has_perm(
             (
                 "core."
                 "manage_vdrl_document_details"
             )
-        )
-        and can_view_document(
-            user,
-            document,
         )
     )
 
@@ -291,13 +261,13 @@ def can_manage_workflow(
     user,
     document,
 ):
-    return (
-        user.has_perm(
-            "core.manage_vdrl_workflow"
-        )
-        and can_view_document(
+    return bool(
+        can_view_document(
             user,
             document,
+        )
+        and user.has_perm(
+            "core.manage_vdrl_workflow"
         )
     )
 
@@ -306,13 +276,13 @@ def can_manage_files(
     user,
     document,
 ):
-    return (
-        user.has_perm(
-            "core.manage_vdrl_files"
-        )
-        and can_view_document(
+    return bool(
+        can_view_document(
             user,
             document,
+        )
+        and user.has_perm(
+            "core.manage_vdrl_files"
         )
     )
 
@@ -321,12 +291,12 @@ def can_manage_crs_for_document(
     user,
     document,
 ):
-    return (
-        user.has_perm(
-            "core.manage_crs"
-        )
-        and can_view_document(
+    return bool(
+        can_view_document(
             user,
             document,
+        )
+        and user.has_perm(
+            "core.manage_crs"
         )
     )

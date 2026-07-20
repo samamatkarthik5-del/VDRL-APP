@@ -38,6 +38,11 @@ from .models import (
     SalesOrder,
     SalesOrderVDRL,
     SalesOrderVDRLDocument,
+    DocumentAssignmentHistory,
+    DocumentOpenPoint,
+    DocumentOpenPointTransaction,
+    DocumentWorkflow,
+    DocumentWorkflowTransaction,
 )
 
 from .notifications import (
@@ -62,6 +67,11 @@ TRACKED_MODELS = (
     DocumentFile,
     CRSRegister,
     CRSComment,
+    DocumentAssignmentHistory,
+    DocumentOpenPoint,
+    DocumentOpenPointTransaction,
+    DocumentWorkflow,
+    DocumentWorkflowTransaction,
 )
 
 
@@ -735,4 +745,19 @@ def create_crs_comment_notifications(
         related_crs_comment=comment,
 
         created_by=actor,
+    )
+
+@receiver(
+    post_save,
+    sender=SalesOrderVDRLDocument,
+    dispatch_uid="create_document_workflow",
+)
+def create_document_workflow(
+    sender,
+    instance,
+    created,
+    **kwargs,
+):
+    DocumentWorkflow.objects.get_or_create(
+        document=instance,
     )

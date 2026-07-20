@@ -1,0 +1,52 @@
+<section class="panel">
+    <div class="panel-header">
+        <h2>{{ title }}</h2>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Sales Order</th>
+                    <th>Document</th>
+                    <th>Status</th>
+                    <th>Department</th>
+                    <th>Contributor</th>
+                    <th>Planned Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for workflow in workflows %}
+                    <tr>
+                        <td>
+                            {{ workflow.document.vdrl.sales_order.sales_order_number }}
+                        </td>
+                        <td>{{ workflow.document }}</td>
+                        <td>{{ workflow.get_status_display }}</td>
+                        <td>{{ workflow.department|default:"-" }}</td>
+                        <td>{{ workflow.contributor|default:"-" }}</td>
+                        <td>
+                            {{ workflow.planned_submission_date|date:"d-M-Y"|default:"-" }}
+                        </td>
+                        <td>
+                            <a
+                                href="{% url 'core:document_workflow' workflow.document_id %}"
+                                class="button button-small"
+                            >
+                                Open
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            No tasks in this bucket.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>

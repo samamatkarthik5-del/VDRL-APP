@@ -133,6 +133,8 @@ class Command(BaseCommand):
                     "bulk_import_vdrl_data",
                     "view_audit_log",
                     "export_audit_log"
+                    "assign_document_department",
+                    "record_customer_document_action",
                 )
             ),
 
@@ -151,6 +153,9 @@ class Command(BaseCommand):
                     ),
                     "view_audit_log",
                     "export_audit_log",
+                    "assign_document_contributor",
+                    "reassign_document_contributor",
+                    "review_department_document",
                 )
             ),
 
@@ -159,18 +164,27 @@ class Command(BaseCommand):
                     "manage_vdrl_workflow",
                     "manage_vdrl_files",
                     "manage_crs",
+                    "raise_document_open_point",
+                    "close_document_open_point",
                 )
             ),
 
             "VDRL Viewers": (
                 permission_list(
-                    "view_all_vdrl_data",
                     (
                         "view_management_"
                         "reports"
                     ),
                 )
             ),
+
+            "Application Engineers":(
+                permission_list(
+                    (
+                        "respond_document_open_point",
+                    )
+                )
+            )
         }
 
 

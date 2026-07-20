@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from certifi.__main__ import args
 from django.core.exceptions import ValidationError
 from django import forms
 from django.contrib.auth import get_user_model
@@ -14,6 +13,7 @@ from .models import (
     DocumentTransaction,
     SalesOrderVDRL,
     SalesOrderVDRLDocument,
+    SalesOrder
 )
 
 User = get_user_model()
@@ -932,3 +932,24 @@ class CRSCommentExcelImportForm(
             ].queryset = (
                 crs_queryset
             )
+
+class SalesOrderForm(forms.ModelForm):
+    class Meta:
+        model = SalesOrder
+
+        fields = [
+            "sales_order_number",
+            "customer",
+            "project",
+            "order_date",
+            "project_manager",
+            "document_controller",
+            "authorized_users",
+            "is_active",
+        ]
+
+        widgets = {
+            "authorized_users": (
+                forms.CheckboxSelectMultiple()
+            ),
+        }

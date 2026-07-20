@@ -21,6 +21,11 @@ from .models import (
     SalesOrderVDRLDocument,
     AuditLog,
     InAppNotification,
+    DocumentAssignmentHistory,
+    DocumentOpenPoint,
+    DocumentOpenPointTransaction,
+    DocumentWorkflow,
+    DocumentWorkflowTransaction,
 )
 
 admin.site.site_header = "VDRL Management System"
@@ -156,6 +161,10 @@ class SalesOrderAdmin(admin.ModelAdmin):
         "project__project_code",
         "project__project_name",
     )
+
+    filter_horizontal = (
+    "authorized_users",
+)
     date_hierarchy = "order_date"
     ordering = ("-order_date",)
 
@@ -1303,3 +1312,67 @@ class InAppNotificationAdmin(admin.ModelAdmin):
         "related_document",
         "related_crs_comment",
     )
+
+@admin.register(DocumentWorkflow)
+class DocumentWorkflowAdmin(
+    admin.ModelAdmin
+):
+    list_display = (
+        "document",
+        "status",
+        "department",
+        "contributor",
+        "planned_submission_date",
+        "current_action_since",
+    )
+
+    list_filter = (
+        "status",
+        "department",
+    )
+
+    search_fields = (
+        "document__vdrl__sales_order__sales_order_number",
+        "contributor__username",
+    )
+
+
+@admin.register(DocumentOpenPoint)
+class DocumentOpenPointAdmin(
+    admin.ModelAdmin
+):
+    list_display = (
+        "reference_number",
+        "workflow",
+        "subject",
+        "status",
+        "priority",
+        "application_engineer",
+        "opened_at",
+        "closed_at",
+    )
+
+    list_filter = (
+        "status",
+        "priority",
+        "is_blocking",
+    )
+
+    search_fields = (
+        "reference_number",
+        "subject",
+        "workflow__document__vdrl__sales_order__sales_order_number",
+    )
+
+
+admin.site.register(
+    DocumentWorkflowTransaction
+)
+
+admin.site.register(
+    DocumentAssignmentHistory
+)
+
+admin.site.register(
+    DocumentOpenPointTransaction
+)

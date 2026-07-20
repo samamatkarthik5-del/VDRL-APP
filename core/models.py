@@ -312,6 +312,21 @@ class SalesOrder(TimeStampedModel):
         related_name="document_controlled_sales_orders",
     )
 
+    authorized_users = models.ManyToManyField(
+    settings.AUTH_USER_MODEL,
+    blank=True,
+    related_name="authorized_sales_orders",
+    verbose_name=(
+        "Users Allowed to Access "
+        "This Sales Order"
+    ),
+    help_text=(
+        "Only these users may view this "
+        "Sales Order and its related "
+        "VDRL documents."
+    ),
+)
+
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -346,6 +361,33 @@ class SalesOrder(TimeStampedModel):
 
         if errors:
             raise ValidationError(errors)
+        
+    def save(
+    self,
+    *args,
+    **kwargs,
+):
+        super().save(
+            *args,
+        **kwargs,
+    )
+
+        users_to_authorize = []
+
+        if self.project_manager_id:
+            users_to_authorize.append(
+            self.project_manager
+        )
+
+        if self.document_controller_id:
+            users_to_authorize.append(
+            self.document_controller
+        )
+
+        if users_to_authorize:
+            self.authorized_users.add(
+            *users_to_authorize
+        )
 
     def __str__(self):
         return f"{self.sales_order_number} - {self.customer.name}"
@@ -482,7 +524,14 @@ class CustomerVDRLTemplate(TimeStampedModel):
 
         if errors:
             raise ValidationError(errors)
-
+    application_engineer = models.ForeignKey(
+    settings.AUTH_USER_MODEL,
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="application_engineer_sales_orders",
+    verbose_name="Application Engineer",
+)
     def __str__(self):
         return (
             f"{self.customer.customer_code} - "
@@ -3278,3 +3327,723 @@ class InAppNotification(models.Model):
             f"{self.recipient.username} - "
             f"{self.title}"
         )
+
+class DocumentWorkflow(TimeStampedModel):
+    class Status(models.TextChoices):
+        WITH_DOCUMENT_CONTROLLER = (
+            "WITH_DOCUMENT_CONTROLLER",
+            "With Document Controller",
+        )
+        WITH_DEPARTMENT_MANAGER = (
+            "WITH_DEPARTMENT_MANAGER",
+            "With Department Manager",
+        )
+        WITH_CONTRIBUTOR = (
+            "WITH_CONTRIBUTOR",
+            "With Contributor",
+        )
+        AWAITING_APPLICATION_ENGINEER = (
+            "AWAITING_APPLICATION_ENGINEER",
+            "Awaiting Application Engineer",
+        )
+        CONTRIBUTOR_REVIEWING_RESPONSE = (
+            "CONTRIBUTOR_REVIEWING_RESPONSE",
+            "Contributor Reviewing AE Response",
+        )
+        SUBMITTED_FOR_DEPARTMENT_REVIEW = (
+            "SUBMITTED_FOR_DEPARTMENT_REVIEW",
+            "Submitted for Department Review",
+        )
+        RETURNED_FOR_REWORK = (
+            "RETURNED_FOR_REWORK",
+            "Returned for Rework",
+        )
+        READY_FOR_CUSTOMER_SUBMISSION = (
+            "READY_FOR_CUSTOMER_SUBMISSION",
+            "Ready for Customer Submission",
+        )
+        SUBMITTED_TO_CUSTOMER = (
+            "SUBMITTED_TO_CUSTOMER",
+            "Submitted to Customer",
+        )
+        CUSTOMER_RETURNED = (
+            "CUSTOMER_RETURNED",
+            "Customer Returned",
+        )
+        CUSTOMER_APPROVED = (
+            "CUSTOMER_APPROVED",
+            "Customer Approved",
+        )
+        ON_HOLD = (
+            "ON_HOLD",
+            "On Hold",
+        )
+        CANCELLED = (
+            "CANCELLED",
+            "Cancelled",
+        )
+
+    document = models.OneToOneField(
+        SalesOrderVDRLDocument,
+        on_delete=models.CASCADE,
+        related_name="workflow",
+    )
+
+    status = models.CharField(
+        max_length=50,
+        choices=Status.choices,
+        default=Status.WITH_DOCUMENT_CONTROLLER,
+        db_index=True,
+    )
+
+    resume_status = models.CharField(
+        max_length=50,
+        choices=Status.choices,
+        blank=True,
+    )
+
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="document_workflows",
+    )
+
+    contributor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="contributor_document_workflows",
+    )
+
+    planned_submission_date = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    department_assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="department_assigned_workflows",
+    )
+
+    department_assigned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    contributor_assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="contributor_assigned_workflows",
+    )
+
+    contributor_assigned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    last_reassigned_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    current_action_since = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = [
+            "planned_submission_date",
+            "document_id",
+        ]
+
+        permissions = [
+            (
+                "assign_document_department",
+                "Can assign document department",
+            ),
+            (
+                "assign_document_contributor",
+                "Can assign document contributor",
+            ),
+            (
+                "reassign_document_contributor",
+                "Can reassign document contributor",
+            ),
+            (
+                "raise_document_open_point",
+                "Can raise document open point",
+            ),
+            (
+                "respond_document_open_point",
+                "Can respond to document open point",
+            ),
+            (
+                "close_document_open_point",
+                "Can close document open point",
+            ),
+            (
+                "review_department_document",
+                "Can review department document",
+            ),
+            (
+                "record_customer_document_action",
+                "Can record customer document action",
+            ),
+        ]
+
+    @property
+    def has_blocking_open_points(self):
+        return self.open_points.filter(
+            is_blocking=True,
+        ).exclude(
+            status__in=[
+                DocumentOpenPoint.Status.CLOSED,
+                DocumentOpenPoint.Status.CANCELLED,
+            ],
+        ).exists()
+
+    @property
+    def current_aging_seconds(self):
+        return max(
+            0,
+            int(
+                (
+                    timezone.now()
+                    - self.current_action_since
+                ).total_seconds()
+            ),
+        )
+
+    def __str__(self):
+        return (
+            f"{self.document} - "
+            f"{self.get_status_display()}"
+        )
+
+
+class DocumentWorkflowTransaction(models.Model):
+    class Action(models.TextChoices):
+        DEPARTMENT_ASSIGNED = (
+            "DEPARTMENT_ASSIGNED",
+            "Department Assigned",
+        )
+        CONTRIBUTOR_ASSIGNED = (
+            "CONTRIBUTOR_ASSIGNED",
+            "Contributor Assigned",
+        )
+        CONTRIBUTOR_REASSIGNED = (
+            "CONTRIBUTOR_REASSIGNED",
+            "Contributor Reassigned",
+        )
+        OPEN_POINT_RAISED = (
+            "OPEN_POINT_RAISED",
+            "Open Point Raised",
+        )
+        OPEN_POINT_RESPONDED = (
+            "OPEN_POINT_RESPONDED",
+            "Open Point Responded",
+        )
+        OPEN_POINT_CLOSED = (
+            "OPEN_POINT_CLOSED",
+            "Open Point Closed",
+        )
+        SUBMITTED_FOR_REVIEW = (
+            "SUBMITTED_FOR_REVIEW",
+            "Submitted for Department Review",
+        )
+        RETURNED_FOR_REWORK = (
+            "RETURNED_FOR_REWORK",
+            "Returned for Rework",
+        )
+        INTERNALLY_APPROVED = (
+            "INTERNALLY_APPROVED",
+            "Internally Approved",
+        )
+        CUSTOMER_SUBMITTED = (
+            "CUSTOMER_SUBMITTED",
+            "Submitted to Customer",
+        )
+        CUSTOMER_RETURNED = (
+            "CUSTOMER_RETURNED",
+            "Customer Returned",
+        )
+        CUSTOMER_APPROVED = (
+            "CUSTOMER_APPROVED",
+            "Customer Approved",
+        )
+
+    workflow = models.ForeignKey(
+        DocumentWorkflow,
+        on_delete=models.CASCADE,
+        related_name="transactions",
+    )
+
+    action = models.CharField(
+        max_length=50,
+        choices=Action.choices,
+    )
+
+    from_status = models.CharField(
+        max_length=50,
+        blank=True,
+    )
+
+    to_status = models.CharField(
+        max_length=50,
+        blank=True,
+    )
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="document_workflow_transactions",
+    )
+
+    comment = models.TextField(
+        blank=True,
+    )
+
+    revision = models.CharField(
+        max_length=50,
+        blank=True,
+    )
+
+    elapsed_seconds = models.PositiveBigIntegerField(
+        default=0,
+        help_text=(
+            "Time spent in the previous workflow status."
+        ),
+    )
+
+    created_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-created_at",
+            "-id",
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.workflow} - "
+            f"{self.get_action_display()}"
+        )
+
+
+class DocumentAssignmentHistory(models.Model):
+    class Action(models.TextChoices):
+        DEPARTMENT_ASSIGNED = (
+            "DEPARTMENT_ASSIGNED",
+            "Department Assigned",
+        )
+        CONTRIBUTOR_ASSIGNED = (
+            "CONTRIBUTOR_ASSIGNED",
+            "Contributor Assigned",
+        )
+        CONTRIBUTOR_REASSIGNED = (
+            "CONTRIBUTOR_REASSIGNED",
+            "Contributor Reassigned",
+        )
+
+    workflow = models.ForeignKey(
+        DocumentWorkflow,
+        on_delete=models.CASCADE,
+        related_name="assignment_history",
+    )
+
+    action = models.CharField(
+        max_length=40,
+        choices=Action.choices,
+    )
+
+    previous_department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    new_department = models.ForeignKey(
+        Department,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    previous_contributor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    new_contributor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    previous_planned_date = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    new_planned_date = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    reason = models.TextField(
+        blank=True,
+    )
+
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="document_assignment_actions",
+    )
+
+    created_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-created_at",
+            "-id",
+        ]
+
+
+class DocumentOpenPoint(models.Model):
+    class Status(models.TextChoices):
+        OPEN = (
+            "OPEN",
+            "Open — Awaiting Application Engineer",
+        )
+        RESPONDED = (
+            "RESPONDED",
+            "Responded — Awaiting Contributor Review",
+        )
+        MORE_INFORMATION_REQUIRED = (
+            "MORE_INFORMATION_REQUIRED",
+            "More Information Required",
+        )
+        CLOSED = (
+            "CLOSED",
+            "Closed",
+        )
+        CANCELLED = (
+            "CANCELLED",
+            "Cancelled",
+        )
+
+    class Priority(models.TextChoices):
+        LOW = "LOW", "Low"
+        NORMAL = "NORMAL", "Normal"
+        HIGH = "HIGH", "High"
+        URGENT = "URGENT", "Urgent"
+
+    workflow = models.ForeignKey(
+        DocumentWorkflow,
+        on_delete=models.CASCADE,
+        related_name="open_points",
+    )
+
+    reference_number = models.CharField(
+        max_length=30,
+    )
+
+    subject = models.CharField(
+        max_length=250,
+    )
+
+    description = models.TextField()
+
+    status = models.CharField(
+        max_length=40,
+        choices=Status.choices,
+        default=Status.OPEN,
+        db_index=True,
+    )
+
+    priority = models.CharField(
+        max_length=20,
+        choices=Priority.choices,
+        default=Priority.NORMAL,
+    )
+
+    is_blocking = models.BooleanField(
+        default=True,
+    )
+
+    application_engineer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="application_engineer_open_points",
+    )
+
+    raised_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="raised_document_open_points",
+    )
+
+    required_by = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    opened_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    first_response_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    latest_response_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    closed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="closed_document_open_points",
+    )
+
+    closure_remark = models.TextField(
+        blank=True,
+    )
+
+    response_cycle = models.PositiveIntegerField(
+        default=0,
+    )
+
+    class Meta:
+        ordering = [
+            "status",
+            "-opened_at",
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "workflow",
+                    "reference_number",
+                ],
+                name="unique_open_point_reference",
+            ),
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "application_engineer",
+                    "status",
+                ],
+                name="openpoint_ae_status_idx",
+            ),
+            models.Index(
+                fields=[
+                    "workflow",
+                    "status",
+                ],
+                name="openpoint_workflow_status_idx",
+            ),
+        ]
+
+    @property
+    def total_open_seconds(self):
+        end_time = (
+            self.closed_at
+            or timezone.now()
+        )
+
+        return max(
+            0,
+            int(
+                (
+                    end_time
+                    - self.opened_at
+                ).total_seconds()
+            ),
+        )
+
+    @property
+    def first_response_seconds(self):
+        if not self.first_response_at:
+            return None
+
+        return max(
+            0,
+            int(
+                (
+                    self.first_response_at
+                    - self.opened_at
+                ).total_seconds()
+            ),
+        )
+
+    @property
+    def contributor_verification_seconds(self):
+        if (
+            not self.closed_at
+            or not self.latest_response_at
+        ):
+            return None
+
+        return max(
+            0,
+            int(
+                (
+                    self.closed_at
+                    - self.latest_response_at
+                ).total_seconds()
+            ),
+        )
+
+    @property
+    def is_overdue(self):
+        return bool(
+            self.required_by
+            and self.status not in [
+                self.Status.CLOSED,
+                self.Status.CANCELLED,
+            ]
+            and self.required_by < timezone.localdate()
+        )
+
+    def __str__(self):
+        return (
+            f"{self.reference_number} - "
+            f"{self.subject}"
+        )
+
+
+class DocumentOpenPointTransaction(models.Model):
+    class Action(models.TextChoices):
+        RAISED = "RAISED", "Raised"
+        RESPONDED = "RESPONDED", "Responded"
+        MORE_INFORMATION_REQUIRED = (
+            "MORE_INFORMATION_REQUIRED",
+            "More Information Required",
+        )
+        CLOSED = "CLOSED", "Closed"
+        CANCELLED = "CANCELLED", "Cancelled"
+        CONTRIBUTOR_REASSIGNED = (
+            "CONTRIBUTOR_REASSIGNED",
+            "Contributor Reassigned",
+        )
+
+    class ResponsibleParty(models.TextChoices):
+        CONTRIBUTOR = (
+            "CONTRIBUTOR",
+            "Contributor",
+        )
+        APPLICATION_ENGINEER = (
+            "APPLICATION_ENGINEER",
+            "Application Engineer",
+        )
+        DEPARTMENT_MANAGER = (
+            "DEPARTMENT_MANAGER",
+            "Department Manager",
+        )
+        DOCUMENT_CONTROLLER = (
+            "DOCUMENT_CONTROLLER",
+            "Document Controller",
+        )
+        SYSTEM = (
+            "SYSTEM",
+            "System",
+        )
+
+    open_point = models.ForeignKey(
+        DocumentOpenPoint,
+        on_delete=models.CASCADE,
+        related_name="transactions",
+    )
+
+    action = models.CharField(
+        max_length=40,
+        choices=Action.choices,
+    )
+
+    from_status = models.CharField(
+        max_length=40,
+        blank=True,
+    )
+
+    to_status = models.CharField(
+        max_length=40,
+        blank=True,
+    )
+
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="open_point_transactions",
+    )
+
+    responsible_party = models.CharField(
+        max_length=30,
+        choices=ResponsibleParty.choices,
+    )
+
+    comment = models.TextField(
+        blank=True,
+    )
+
+    attachment = models.FileField(
+        upload_to="open_point_attachments/%Y/%m/",
+        null=True,
+        blank=True,
+    )
+
+    elapsed_since_previous_seconds = (
+        models.PositiveBigIntegerField(
+            default=0,
+        )
+    )
+
+    created_at = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = [
+            "created_at",
+            "id",
+        ]

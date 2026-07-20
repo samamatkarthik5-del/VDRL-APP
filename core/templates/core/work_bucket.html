@@ -1,0 +1,75 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+My Work Bucket | VDRL
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>My Work Bucket</h1>
+        <p class="muted">
+            Tasks requiring your action
+        </p>
+    </div>
+</div>
+
+
+{% include "core/work_bucket_table.html" with title="Contributor Tasks" workflows=my_contributor_tasks %}
+
+{% include "core/work_bucket_table.html" with title="Department Manager Tasks" workflows=manager_tasks %}
+
+{% include "core/work_bucket_table.html" with title="Document Controller Tasks" workflows=controller_tasks %}
+
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>Application Engineer Open Points</h2>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Document</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Raised</th>
+                    <th></th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for point in ae_open_points %}
+                    <tr>
+                        <td>{{ point.reference_number }}</td>
+                        <td>{{ point.workflow.document }}</td>
+                        <td>{{ point.subject }}</td>
+                        <td>{{ point.get_status_display }}</td>
+                        <td>
+                            {{ point.opened_at|date:"d-M-Y H:i" }}
+                        </td>
+                        <td>
+                            <a
+                                href="{% url 'core:open_point_respond' point.pk %}"
+                                class="button button-small"
+                            >
+                                Respond
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            No Application Engineer open points.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% endblock %}

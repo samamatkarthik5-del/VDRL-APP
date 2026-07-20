@@ -5,6 +5,7 @@ from . import dashboard_views
 from . import report_views
 from . import views
 from . import import_views
+from . import workflow_views
 
 app_name = "core"
 
@@ -178,6 +179,66 @@ path(
     "audit/<int:pk>/",
     activity_views.audit_log_detail,
     name="audit_log_detail",
+),
+
+path(
+    "work-bucket/",
+    workflow_views.my_work_bucket,
+    name="my_work_bucket",
+),
+
+path(
+    "documents/<int:document_id>/workflow/",
+    workflow_views.document_workflow,
+    name="document_workflow",
+),
+
+path(
+    "documents/<int:document_id>/workflow/assign-department/",
+    workflow_views.workflow_assign_department,
+    name="workflow_assign_department",
+),
+
+path(
+    "documents/<int:document_id>/workflow/assign-contributor/",
+    workflow_views.workflow_assign_contributor,
+    name="workflow_assign_contributor",
+),
+
+path(
+    "documents/<int:document_id>/workflow/reassign-contributor/",
+    workflow_views.workflow_reassign_contributor,
+    name="workflow_reassign_contributor",
+),
+
+path(
+    "documents/<int:document_id>/workflow/raise-open-point/",
+    workflow_views.workflow_raise_open_point,
+    name="workflow_raise_open_point",
+),
+
+path(
+    "open-points/<int:open_point_id>/respond/",
+    workflow_views.open_point_respond,
+    name="open_point_respond",
+),
+
+path(
+    "open-points/<int:open_point_id>/decide/",
+    workflow_views.open_point_decide,
+    name="open_point_decide",
+),
+
+path(
+    "documents/<int:document_id>/workflow/submit-review/",
+    workflow_views.workflow_submit_for_review,
+    name="workflow_submit_for_review",
+),
+
+path(
+    "documents/<int:document_id>/workflow/department-review/",
+    workflow_views.workflow_department_review,
+    name="workflow_department_review",
 ),
 
 ]

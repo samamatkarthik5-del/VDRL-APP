@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+{{ title }} | VDRL
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>{{ title }}</h1>
+
+        <p class="muted">
+            {{ workflow.document }}
+        </p>
+    </div>
+</div>
+
+<section class="panel">
+
+    <form
+        method="post"
+        enctype="multipart/form-data"
+    >
+        {% csrf_token %}
+
+        {{ form.non_field_errors }}
+
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">
+                    {{ field.label }}
+                </label>
+
+                {{ field }}
+
+                {% for error in field.errors %}
+                    <div class="form-error">
+                        {{ error }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Submit
+            </button>
+
+            <a
+                href="{% url 'core:document_workflow' workflow.document_id %}"
+                class="button"
+            >
+                Cancel
+            </a>
+        </div>
+    </form>
+
+</section>
+
+{% endblock %}
