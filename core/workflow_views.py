@@ -20,6 +20,7 @@ from .models import (
     DocumentOpenPoint,
     DocumentWorkflow,
     SalesOrderVDRLDocument,
+    EmployeeProfile,
 )
 from .workflow_forms import (
     AssignContributorForm,
@@ -41,7 +42,6 @@ from .workflow_services import (
     review_open_point_response,
     submit_for_department_review,
 )
-
 
 def _accessible_document(
     request,
@@ -714,90 +714,101 @@ def workflow_department_review(
 
 
 @login_required
-def my_work_bucket(
-    request,
-):
+def my_work_bucket(request):
     accessible_documents = (
         filter_documents_for_user(
             request.user,
-            SalesOrderVDRLDocument
-            .objects
-            .all(),
+            SalesOrderVDRLDocument.objects.all(),
         )
     )
 
     workflows = (
-        DocumentWorkflow
-        .objects
+        DocumentWorkflow.objects
         .filter(
-            document__in=(
-                accessible_documents
-            )
+            document__in=accessible_documents,
         )
         .select_related(
             "document",
+            "document__vdrl",
             "document__vdrl__sales_order",
             "department",
             "contributor",
         )
     )
 
-    my_contributor_tasks = workflows.filter(
-        contributor=request.user,
-    ).exclude(
-        status__in=[
-            DocumentWorkflow.Status.CUSTOMER_APPROVED,
-            DocumentWorkflow.Status.CANCELLED,
-        ],
+    # Tasks where the logged-in user is the contributor.
+    my_contributor_tasks = (
+        workflows
+        .filter(
+            contributor=request.user,
+        )
+        .exclude(
+            status__in=[
+                DocumentWorkflow.Status.CUSTOMER_APPROVED,
+                DocumentWorkflow.Status.CANCELLED,
+            ],
+        )
     )
 
-    manager_tasks = workflows.filter(
-        Q(
-            department__manager=request.user
+    # Find the logged-in user's department safely.
+    employee_profile = (
+        EmployeeProfile.objects
+        .select_related("department")
+        .filter(user=request.user)
+        .first()
+    )
+
+    manager_tasks = DocumentWorkflow.objects.none()
+
+    if employee_profile and employee_profile.department_id:
+        is_department_manager = (
+            request.user.is_superuser
+            or request.user.has_perm(
+                "core.view_all_vdrl_data"
+            )
+            or request.user.groups.filter(
+                name="Department Managers",
+            ).exists()
+            or getattr(
+                employee_profile.department,
+                "manager_id",
+                None,
+            ) == request.user.id
         )
-        |
-        Q(
-            department__employee_profiles__user=(
+
+        if is_department_manager:
+            manager_tasks = (
+                workflows
+                .filter(
+                    department_id=(
+                        employee_profile.department_id
+                    ),
+                    status__in=[
+                        DocumentWorkflow.Status.WITH_DEPARTMENT_MANAGER,
+                        DocumentWorkflow.Status.SUBMITTED_FOR_DEPARTMENT_REVIEW,
+                    ],
+                )
+            )
+
+    # Tasks belonging to the logged-in Document Controller.
+    controller_tasks = (
+        workflows
+        .filter(
+            document__vdrl__sales_order__document_controller=(
                 request.user
             ),
-            department__employee_profiles__user__groups__name=(
-                "Department Managers"
-            ),
+            status__in=[
+                DocumentWorkflow.Status.WITH_DOCUMENT_CONTROLLER,
+                DocumentWorkflow.Status.READY_FOR_CUSTOMER_SUBMISSION,
+            ],
         )
-    ).filter(
-        status__in=[
-            DocumentWorkflow
-            .Status
-            .WITH_DEPARTMENT_MANAGER,
-
-            DocumentWorkflow
-            .Status
-            .SUBMITTED_FOR_DEPARTMENT_REVIEW,
-        ],
-    ).distinct()
-
-    controller_tasks = workflows.filter(
-        document__vdrl__sales_order__document_controller=(
-            request.user
-        ),
-        status__in=[
-            DocumentWorkflow
-            .Status
-            .WITH_DOCUMENT_CONTROLLER,
-
-            DocumentWorkflow
-            .Status
-            .READY_FOR_CUSTOMER_SUBMISSION,
-        ],
     )
 
+    # Open points awaiting action from the Application Engineer.
     ae_open_points = (
-        DocumentOpenPoint
-        .objects
+        DocumentOpenPoint.objects
         .filter(
-            workflow__document__in=(
-                accessible_documents
-            ),
+            workflow__document__in=accessible_documents,
             application_engineer=request.user,
         )
         .exclude(
@@ -807,7 +818,10 @@ def my_work_bucket(
             ],
         )
         .select_related(
+            "workflow",
             "workflow__document",
+            "workflow__document__vdrl",
+            "workflow__document__vdrl__sales_order",
         )
     )
 
@@ -815,13 +829,9 @@ def my_work_bucket(
         request,
         "core/work_bucket.html",
         {
-            "my_contributor_tasks": (
-                my_contributor_tasks
-            ),
+            "my_contributor_tasks": my_contributor_tasks,
             "manager_tasks": manager_tasks,
-            "controller_tasks": (
-                controller_tasks
-            ),
+            "controller_tasks": controller_tasks,
             "ae_open_points": ae_open_points,
         },
     )
