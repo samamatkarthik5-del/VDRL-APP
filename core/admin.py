@@ -26,6 +26,11 @@ from .models import (
     DocumentOpenPointTransaction,
     DocumentWorkflow,
     DocumentWorkflowTransaction,
+    ProjectTeam,
+    ProjectTeamMember,
+)
+from .project_team_forms import (
+    SalesOrderTeamForm,
 )
 
 admin.site.site_header = "VDRL Management System"
@@ -134,16 +139,17 @@ class ProjectAdmin(admin.ModelAdmin):
 @admin.register(SalesOrder)
 class SalesOrderAdmin(admin.ModelAdmin):
     list_display = (
-        "sales_order_number",
-        "customer",
-        "project",
-        "customer_po_number",
-        "order_date",
-        "contractual_vdrl_date",
-        "planned_delivery_date",
-        "project_manager",
-        "document_controller",
-        "status",
+    "sales_order_number",
+    "customer",
+    "project",
+    "project_manager",
+    "approval_status",
+    "document_controller",
+    "is_active",
+    "project_team",
+    "project_manager",
+    "application_engineer",
+    "document_controller",
     )
     list_filter = (
         "status",
@@ -160,13 +166,94 @@ class SalesOrderAdmin(admin.ModelAdmin):
         "customer__customer_code",
         "project__project_code",
         "project__project_name",
-    )
+        "project_team",
+        "approval_status",
+        "is_active",
+        )
+
+    fieldsets = (
+    (
+        "Sales Order Details",
+        {
+            "fields": (
+                "sales_order_number",
+                "customer",
+                "project",
+                "project_manager",
+                "document_controller",
+                "order_date",
+                "is_active",
+                "authorized_users",
+            )
+        },
+    ),
+    (
+        "Approval Details",
+        {
+            "fields": (
+                "approval_status",
+                "submitted_for_approval_by",
+                "submitted_for_approval_at",
+                "sales_manager_approved_by",
+                "sales_manager_approved_at",
+                "sales_manager_approval_comment",
+                "project_manager_approved_by",
+                "project_manager_approved_at",
+                "project_manager_approval_comment",
+                "rejected_by",
+                "rejected_at",
+                "rejection_reason",
+            ),
+        },
+    ),
+)
+    readonly_fields = (
+    "submitted_for_approval_by",
+    "submitted_for_approval_at",
+    "sales_manager_approved_by",
+    "sales_manager_approved_at",
+    "project_manager_approved_by",
+    "project_manager_approved_at",
+    "rejected_by",
+    "rejected_at",
+)
 
     filter_horizontal = (
     "authorized_users",
+    "backup_document_controllers",
 )
     date_hierarchy = "order_date"
     ordering = ("-order_date",)
+    form = SalesOrderTeamForm
+
+    def get_form(
+    self,
+    request,
+    obj=None,
+    **kwargs,
+):
+        base_form = super().get_form(
+        request,
+        obj,
+        **kwargs,
+    )
+
+        class RequestAwareSalesOrderForm(
+        base_form
+    ):
+         def __init__(
+            self,
+            *args,
+            **form_kwargs,
+        ):
+            form_kwargs["user"] = request.user
+
+            super().__init__(
+                *args,
+                **form_kwargs,
+            )
+
+            return RequestAwareSalesOrderForm
 
 
 @admin.register(DocumentCategory)
@@ -1376,3 +1463,56 @@ admin.site.register(
 admin.site.register(
     DocumentOpenPointTransaction
 )
+
+class ProjectTeamMemberInline(
+    admin.TabularInline
+):
+    model = ProjectTeamMember
+
+    extra = 1
+
+    fields = (
+        "user",
+        "role",
+        "is_active",
+    )
+
+
+@admin.register(ProjectTeam)
+class ProjectTeamAdmin(
+    admin.ModelAdmin
+):
+    list_display = (
+        "team_code",
+        "team_name",
+        "project_manager",
+        "active_member_count",
+        "is_active",
+    )
+
+    list_filter = (
+        "is_active",
+    )
+
+    search_fields = (
+        "team_code",
+        "team_name",
+        "project_manager__username",
+        "project_manager__first_name",
+        "project_manager__last_name",
+    )
+
+    inlines = [
+        ProjectTeamMemberInline,
+    ]
+
+    @admin.display(
+        description="Active Members"
+    )
+    def active_member_count(
+        self,
+        obj,
+    ):
+        return obj.members.filter(
+            is_active=True,
+        ).count()

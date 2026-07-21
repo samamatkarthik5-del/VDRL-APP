@@ -123,6 +123,166 @@ class TimeStampedModel(models.Model):
         abstract = True
 
 
+class ProjectTeam(TimeStampedModel):
+    team_code = models.CharField(
+        max_length=30,
+        unique=True,
+    )
+
+    team_name = models.CharField(
+        max_length=150,
+        unique=True,
+    )
+
+    project_manager = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="managed_project_teams",
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
+
+    class Meta:
+        ordering = [
+            "team_code",
+        ]
+
+        verbose_name = "Project Team"
+        verbose_name_plural = "Project Teams"
+
+    def clean(self):
+        super().clean()
+
+        if (
+            self.project_manager_id
+            and not self.project_manager.is_active
+        ):
+            raise ValidationError(
+                {
+                    "project_manager": (
+                        "The selected Project Manager "
+                        "is not an active user."
+                    )
+                }
+            )
+
+    def __str__(self):
+        return (
+            f"{self.team_code} - "
+            f"{self.team_name}"
+        )
+
+
+class ProjectTeamMember(TimeStampedModel):
+    class Role(models.TextChoices):
+        APPLICATION_ENGINEER = (
+            "APPLICATION_ENGINEER",
+            "Application Engineer",
+        )
+
+        DOCUMENT_CONTROLLER = (
+            "DOCUMENT_CONTROLLER",
+            "Document Controller",
+        )
+
+    project_team = models.ForeignKey(
+        ProjectTeam,
+        on_delete=models.CASCADE,
+        related_name="members",
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="project_team_memberships",
+    )
+
+    role = models.CharField(
+        max_length=30,
+        choices=Role.choices,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
+
+    class Meta:
+        ordering = [
+            "project_team",
+            "role",
+            "user__first_name",
+            "user__username",
+        ]
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "project_team",
+                    "user",
+                    "role",
+                ],
+                name="unique_project_team_member_role",
+            ),
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "project_team",
+                    "role",
+                    "is_active",
+                ],
+                name="project_team_role_idx",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+
+        if self.user_id and not self.user.is_active:
+            raise ValidationError(
+                {
+                    "user": (
+                        "An inactive user cannot be "
+                        "added to a Project Team."
+                    )
+                }
+            )
+
+        other_membership = (
+            ProjectTeamMember.objects
+            .filter(
+                user=self.user,
+                role=self.role,
+                is_active=True,
+            )
+            .exclude(
+                pk=self.pk,
+            )
+        )
+
+        if other_membership.exists():
+            existing = other_membership.first()
+
+            raise ValidationError(
+                {
+                    "user": (
+                        f"This user is already an active "
+                        f"{self.get_role_display()} in "
+                        f"{existing.project_team}."
+                    )
+                }
+            )
+
+    def __str__(self):
+        return (
+            f"{self.project_team} - "
+            f"{self.user} - "
+            f"{self.get_role_display()}"
+        )
+
 class Department(TimeStampedModel):
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(
@@ -304,6 +464,20 @@ class SalesOrder(TimeStampedModel):
         blank=True,
         related_name="project_managed_sales_orders",
     )
+    application_engineer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="sales_order_application_engineer",
+    )
+    project_team = models.ForeignKey(
+        "ProjectTeam",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales_orders",
+    )
     document_controller = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -313,19 +487,25 @@ class SalesOrder(TimeStampedModel):
     )
 
     authorized_users = models.ManyToManyField(
-    settings.AUTH_USER_MODEL,
-    blank=True,
-    related_name="authorized_sales_orders",
-    verbose_name=(
-        "Users Allowed to Access "
-        "This Sales Order"
-    ),
-    help_text=(
-        "Only these users may view this "
-        "Sales Order and its related "
-        "VDRL documents."
-    ),
-)
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="authorized_sales_orders",
+        verbose_name=(
+            "Users Allowed to Access "
+            "This Sales Order"
+        ),
+        help_text=(
+            "Only these users may view this "
+            "Sales Order and its related "
+            "VDRL documents."
+        ),
+    )
+    backup_document_controllers = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="backup_document_controlled_sales_orders",
+        verbose_name="Backup Document Controllers",
+    )
 
     status = models.CharField(
         max_length=20,
@@ -335,10 +515,116 @@ class SalesOrder(TimeStampedModel):
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
 
+    class ApprovalStatus(models.TextChoices):
+        DRAFT = "DRAFT", "Draft"
+        PENDING_APPROVAL = "PENDING_APPROVAL", "Pending Approval"
+        PARTIALLY_APPROVED = "PARTIALLY_APPROVED", "Partially Approved"
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
+
+    approval_status = models.CharField(
+        max_length=30,
+        choices=ApprovalStatus.choices,
+        default=ApprovalStatus.DRAFT,
+        db_index=True,
+    )
+
+    submitted_for_approval_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales_orders_submitted_for_approval",
+    )
+
+    submitted_for_approval_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    sales_manager_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales_manager_approved_sales_orders",
+    )
+
+    sales_manager_approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    sales_manager_approval_comment = models.TextField(
+        blank=True,
+    )
+
+    project_manager_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="project_manager_approved_sales_orders",
+    )
+
+    project_manager_approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    project_manager_approval_comment = models.TextField(
+        blank=True,
+    )
+
+    rejected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rejected_sales_orders",
+    )
+
+    rejected_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    rejection_reason = models.TextField(
+        blank=True,
+    )
+
     class Meta:
         ordering = ["-order_date", "sales_order_number"]
+        permissions = [
+            (
+                "submit_sales_order_for_approval",
+                "Can submit Sales Order for approval",
+            ),
+            (
+                "approve_sales_order_as_sales_manager",
+                "Can approve Sales Order as Sales Manager",
+            ),
+            (
+                "approve_sales_order_as_project_manager",
+                "Can approve Sales Order as Project Manager",
+            ),
+            (
+                "reject_sales_order",
+                "Can reject Sales Order",
+            ),
+            (
+                "assign_document_controller",
+                "Can assign Document Controller after approval",
+            ),
+            (
+                "view_sales_order_approval_history",
+                "Can view Sales Order approval history",
+            ),
+        ]
 
     def clean(self):
+        super().clean()
+
         errors = {}
 
         if self.project_id and self.customer_id:
@@ -361,33 +647,96 @@ class SalesOrder(TimeStampedModel):
 
         if errors:
             raise ValidationError(errors)
-        
-    def save(
-    self,
-    *args,
-    **kwargs,
-):
-        super().save(
-            *args,
-        **kwargs,
-    )
+
+        if not self.project_team_id:
+            return
+
+        team = self.project_team
+
+        if (
+            self.project_manager_id
+            and self.project_manager_id != team.project_manager_id
+        ):
+            raise ValidationError(
+                {
+                    "project_manager": (
+                        "The Project Manager must be the "
+                        "manager assigned to the selected "
+                        "Project Team."
+                    )
+                }
+            )
+
+        if self.application_engineer_id:
+            valid_ae = (
+                ProjectTeamMember.objects
+                .filter(
+                    project_team=team,
+                    user_id=self.application_engineer_id,
+                    role=(
+                        ProjectTeamMember
+                        .Role
+                        .APPLICATION_ENGINEER
+                    ),
+                    is_active=True,
+                )
+                .exists()
+            )
+
+            if not valid_ae:
+                raise ValidationError(
+                    {
+                        "application_engineer": (
+                            "The Application Engineer must "
+                            "belong to the selected "
+                            "Project Team."
+                        )
+                    }
+                )
+
+        if self.document_controller_id:
+            valid_dc = (
+                ProjectTeamMember.objects
+                .filter(
+                    project_team=team,
+                    user_id=self.document_controller_id,
+                    role=(
+                        ProjectTeamMember
+                        .Role
+                        .DOCUMENT_CONTROLLER
+                    ),
+                    is_active=True,
+                )
+                .exists()
+            )
+
+            if not valid_dc:
+                raise ValidationError(
+                    {
+                        "document_controller": (
+                            "The Document Controller must "
+                            "belong to the selected "
+                            "Project Team."
+                        )
+                    }
+                )
+
+    def save(self, *args, **kwargs):
+        if self.project_team_id:
+            self.project_manager_id = self.project_team.project_manager_id
+
+        super().save(*args, **kwargs)
 
         users_to_authorize = []
 
         if self.project_manager_id:
-            users_to_authorize.append(
-            self.project_manager
-        )
+            users_to_authorize.append(self.project_manager)
 
         if self.document_controller_id:
-            users_to_authorize.append(
-            self.document_controller
-        )
+            users_to_authorize.append(self.document_controller)
 
         if users_to_authorize:
-            self.authorized_users.add(
-            *users_to_authorize
-        )
+            self.authorized_users.add(*users_to_authorize)
 
     def __str__(self):
         return f"{self.sales_order_number} - {self.customer.name}"
@@ -529,7 +878,7 @@ class CustomerVDRLTemplate(TimeStampedModel):
     on_delete=models.SET_NULL,
     null=True,
     blank=True,
-    related_name="application_engineer_sales_orders",
+    related_name="vdrl_template_application_engineer",
     verbose_name="Application Engineer",
 )
     def __str__(self):

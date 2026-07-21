@@ -6,6 +6,7 @@ from . import report_views
 from . import views
 from . import import_views
 from . import workflow_views
+from . import team_views
 
 app_name = "core"
 
@@ -239,6 +240,12 @@ path(
     "documents/<int:document_id>/workflow/department-review/",
     workflow_views.workflow_department_review,
     name="workflow_department_review",
+),
+
+path(
+    "project-teams/<int:team_id>/members/",
+    team_views.project_team_members,
+    name="project_team_members",
 ),
 
 ]

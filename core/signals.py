@@ -43,6 +43,8 @@ from .models import (
     DocumentOpenPointTransaction,
     DocumentWorkflow,
     DocumentWorkflowTransaction,
+    ProjectTeam,
+    SalesOrder,
 )
 
 from .notifications import (
@@ -760,4 +762,28 @@ def create_document_workflow(
 ):
     DocumentWorkflow.objects.get_or_create(
         document=instance,
+    )
+
+@receiver(
+    post_save,
+    sender=ProjectTeam,
+    dispatch_uid=(
+        "sync_project_team_manager_to_sales_orders"
+    ),
+)
+def sync_project_team_manager_to_sales_orders(
+    sender,
+    instance,
+    **kwargs,
+):
+    SalesOrder.objects.filter(
+        project_team=instance,
+    ).exclude(
+        project_manager=(
+            instance.project_manager
+        ),
+    ).update(
+        project_manager=(
+            instance.project_manager
+        ),
     )
