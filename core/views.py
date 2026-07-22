@@ -181,11 +181,6 @@ def get_allowed_actions(document):
 
 
 def dashboard(request):
-    user = request.user._wrapped
-
-    print("USER:", user)
-    print("ID:", user.id)
-    print("FIELDS:", user.__dict__)
     """
     Main management and operational dashboard.
     """
