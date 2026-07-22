@@ -226,36 +226,20 @@ class SalesOrderAdmin(admin.ModelAdmin):
     ordering = ("-order_date",)
     form = SalesOrderTeamForm
 
-    def get_form(
-    self,
-    request,
-    obj=None,
-    **kwargs,
-):
+    def get_form(self, request, obj=None, **kwargs):
         base_form = super().get_form(
-        request,
-        obj,
-        **kwargs,
-    )
+            request,
+            obj,
+            **kwargs,
+        )
 
-        class RequestAwareSalesOrderForm(
-        base_form
-    ):
-         def __init__(
-            self,
-            *args,
-            **form_kwargs,
-        ):
-            form_kwargs["user"] = request.user
+        class RequestAwareSalesOrderForm(base_form):
+            def __init__(self, *args, **form_kwargs):
+                form_kwargs["user"] = request.user
+                super().__init__(*args, **form_kwargs)
 
-            super().__init__(
-                *args,
-                **form_kwargs,
-            )
-
-            return RequestAwareSalesOrderForm
-
-
+        return RequestAwareSalesOrderForm
+    
 @admin.register(DocumentCategory)
 class DocumentCategoryAdmin(admin.ModelAdmin):
     list_display = (
