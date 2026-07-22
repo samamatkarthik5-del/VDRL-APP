@@ -182,6 +182,8 @@ def get_allowed_actions(document):
 
 @login_required
 def dashboard(request):
+    print(request.user)
+    print(request.user.__dict__)
     """
     Main management and operational dashboard.
     """
