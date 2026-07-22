@@ -64,6 +64,7 @@ class SalesOrderTeamForm(forms.ModelForm):
         )
 
         self.current_user = user
+        print("FORM FIELDS =", list(self.fields.keys()))
         self.fields[
     "sales_manager"
 ].queryset = (
