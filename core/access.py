@@ -131,7 +131,6 @@ def filter_documents_for_user(
         | Q(
             vdrl__sales_order__backup_document_controllers=user
         )
-        | Q(sales_manager=user)
         | Q(
             vdrl__sales_order__sales_manager=user
         )
