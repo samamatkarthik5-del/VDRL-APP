@@ -192,7 +192,7 @@ class SalesOrderAdmin(admin.ModelAdmin):
     "application_engineer",
     "document_controller",
     "backup_document_controllers",
-    "sales_manager"
+    "sales_manager",
 
     "order_date",
     "is_active",
