@@ -471,6 +471,14 @@ class SalesOrder(TimeStampedModel):
         blank=True,
         related_name="sales_order_application_engineer",
     )
+    sales_manager = models.ForeignKey(
+    settings.AUTH_USER_MODEL,
+    on_delete=models.PROTECT,
+    null=True,
+    blank=True,
+    related_name="sales_managed_sales_orders",
+    verbose_name="Sales Manager",
+)
     project_team = models.ForeignKey(
         "ProjectTeam",
         on_delete=models.SET_NULL,
@@ -720,6 +728,23 @@ class SalesOrder(TimeStampedModel):
                         )
                     }
                 )
+        if self.sales_manager_id:
+            is_sales_manager = (
+                self.sales_manager.is_superuser
+                or self.sales_manager.groups.filter(
+            name__iexact="SALES MANAGER",
+        ).exists()
+    )
+
+        if not is_sales_manager:
+            raise ValidationError(
+            {
+                "sales_manager": (
+                    "The selected user must belong "
+                    "to the SALES MANAGER group."
+                )
+            }
+        )
 
     def save(self, *args, **kwargs):
         if self.project_team_id:

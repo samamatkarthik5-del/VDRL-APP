@@ -41,6 +41,7 @@ class SalesOrderTeamForm(forms.ModelForm):
             "order_date",
             "is_active",
             "authorized_users",
+            "sales_manager",
         ]
 
         widgets = {
@@ -63,6 +64,23 @@ class SalesOrderTeamForm(forms.ModelForm):
         )
 
         self.current_user = user
+        self.fields[
+    "sales_manager"
+].queryset = (
+    User.objects
+    .filter(
+        is_active=True,
+        groups__name__iexact=(
+            "SALES MANAGER"
+        ),
+    )
+    .distinct()
+    .order_by(
+        "first_name",
+        "last_name",
+        "username",
+    )
+)
 
         self.fields[
             "project_team"

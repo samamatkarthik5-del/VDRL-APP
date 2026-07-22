@@ -138,6 +138,12 @@ class ProjectAdmin(admin.ModelAdmin):
 
 @admin.register(SalesOrder)
 class SalesOrderAdmin(admin.ModelAdmin):
+
+    actions = (
+    "submit_for_approval",
+    "approve_as_sales_manager",
+    "approve_as_project_manager",
+)
     list_display = (
     "sales_order_number",
     "customer",
@@ -148,6 +154,9 @@ class SalesOrderAdmin(admin.ModelAdmin):
     "is_active",
     "project_team",
     "application_engineer",
+    "sales_manager",
+    "project_manager",
+    "approval_status",
     )
     list_filter = (
         "status",
@@ -215,10 +224,13 @@ class SalesOrderAdmin(admin.ModelAdmin):
     "submitted_for_approval_at",
     "sales_manager_approved_by",
     "sales_manager_approved_at",
+    "sales_manager_approval_comment",
     "project_manager_approved_by",
     "project_manager_approved_at",
+    "project_manager_approval_comment",
     "rejected_by",
     "rejected_at",
+    "rejection_reason",
 )
 
     filter_horizontal = (
@@ -242,7 +254,353 @@ class SalesOrderAdmin(admin.ModelAdmin):
                 super().__init__(*args, **form_kwargs)
 
         return RequestAwareSalesOrderForm
-    
+
+    @admin.action(
+    description=(
+        "Submit selected Sales Orders "
+        "for approval"
+    )
+)
+    def submit_for_approval(
+        self,
+        request,
+        queryset,
+    ):
+        if not (
+            request.user.is_superuser
+            or request.user.has_perm(
+                "core.submit_sales_order_for_approval"
+            )
+        ):
+            self.message_user(
+                request,
+                (
+                    "You do not have permission to "
+                    "submit Sales Orders for approval."
+                ),
+                level=messages.ERROR,
+            )
+            return
+
+        submitted_count = 0
+        skipped_count = 0
+
+        for sales_order in queryset:
+            if not sales_order.sales_manager_id:
+                skipped_count += 1
+                continue
+
+            if not sales_order.project_manager_id:
+                skipped_count += 1
+                continue
+
+            if sales_order.approval_status not in [
+                "DRAFT",
+                "REJECTED",
+            ]:
+                skipped_count += 1
+                continue
+
+            sales_order.approval_status = (
+                "PENDING_APPROVAL"
+            )
+
+            sales_order.submitted_for_approval_by = (
+                request.user
+            )
+
+            sales_order.submitted_for_approval_at = (
+                timezone.now()
+            )
+
+            # Clear any previous approval result.
+            sales_order.sales_manager_approved_by = None
+            sales_order.sales_manager_approved_at = None
+            sales_order.sales_manager_approval_comment = ""
+
+            sales_order.project_manager_approved_by = None
+            sales_order.project_manager_approved_at = None
+            sales_order.project_manager_approval_comment = ""
+
+            sales_order.rejected_by = None
+            sales_order.rejected_at = None
+            sales_order.rejection_reason = ""
+
+            sales_order.save(
+                update_fields=[
+                    "approval_status",
+                    "submitted_for_approval_by",
+                    "submitted_for_approval_at",
+                    "sales_manager_approved_by",
+                    "sales_manager_approved_at",
+                    "sales_manager_approval_comment",
+                    "project_manager_approved_by",
+                    "project_manager_approved_at",
+                    "project_manager_approval_comment",
+                    "rejected_by",
+                    "rejected_at",
+                    "rejection_reason",
+                    "updated_at",
+                ]
+            )
+
+            submitted_count += 1
+
+        if submitted_count:
+            self.message_user(
+                request,
+                (
+                    f"{submitted_count} Sales Order(s) "
+                    f"submitted for approval."
+                ),
+                level=messages.SUCCESS,
+            )
+
+        if skipped_count:
+            self.message_user(
+                request,
+                (
+                    f"{skipped_count} Sales Order(s) were "
+                    f"not submitted. Confirm Sales Manager, "
+                    f"Project Manager and Draft status."
+                ),
+                level=messages.WARNING,
+            )
+
+@admin.action(
+    description=(
+        "Approve selected Sales Orders "
+        "as Sales Manager"
+    )
+)
+def approve_as_sales_manager(
+    self,
+    request,
+    queryset,
+):
+    if not (
+        request.user.is_superuser
+        or request.user.has_perm(
+            "core.approve_sales_order_as_sales_manager"
+        )
+    ):
+        self.message_user(
+            request,
+            (
+                "You do not have Sales Manager "
+                "approval permission."
+            ),
+            level=messages.ERROR,
+        )
+        return
+
+    approved_count = 0
+    skipped_count = 0
+
+    for sales_order in queryset:
+        if (
+            not request.user.is_superuser
+            and sales_order.sales_manager_id
+            != request.user.id
+        ):
+            skipped_count += 1
+            continue
+
+        if sales_order.approval_status not in [
+            "PENDING_APPROVAL",
+            "PARTIALLY_APPROVED",
+        ]:
+            skipped_count += 1
+            continue
+
+        sales_order.sales_manager_approved_by = (
+            request.user
+        )
+
+        sales_order.sales_manager_approved_at = (
+            timezone.now()
+        )
+
+        if sales_order.project_manager_approved_at:
+            sales_order.approval_status = (
+                "APPROVED"
+            )
+        else:
+            sales_order.approval_status = (
+                "PARTIALLY_APPROVED"
+            )
+
+        sales_order.save(
+            update_fields=[
+                "sales_manager_approved_by",
+                "sales_manager_approved_at",
+                "approval_status",
+                "updated_at",
+            ]
+        )
+
+        approved_count += 1
+
+    if approved_count:
+        self.message_user(
+            request,
+            (
+                f"{approved_count} Sales Order(s) "
+                f"approved by Sales Manager."
+            ),
+            level=messages.SUCCESS,
+        )
+
+    if skipped_count:
+        self.message_user(
+            request,
+            (
+                f"{skipped_count} Sales Order(s) were "
+                f"not approved. The order may not be "
+                f"assigned to you or may have the "
+                f"wrong status."
+            ),
+            level=messages.WARNING,
+        )
+
+@admin.action(
+    description=(
+        "Approve selected Sales Orders "
+        "as Project Manager"
+    )
+)
+def approve_as_project_manager(
+    self,
+    request,
+    queryset,
+):
+    if not (
+        request.user.is_superuser
+        or request.user.has_perm(
+            "core.approve_sales_order_as_project_manager"
+        )
+    ):
+        self.message_user(
+            request,
+            (
+                "You do not have Project Manager "
+                "approval permission."
+            ),
+            level=messages.ERROR,
+        )
+        return
+
+    approved_count = 0
+    skipped_count = 0
+
+    for sales_order in queryset:
+        if (
+            not request.user.is_superuser
+            and sales_order.project_manager_id
+            != request.user.id
+        ):
+            skipped_count += 1
+            continue
+
+        if sales_order.approval_status not in [
+            "PENDING_APPROVAL",
+            "PARTIALLY_APPROVED",
+        ]:
+            skipped_count += 1
+            continue
+
+        sales_order.project_manager_approved_by = (
+            request.user
+        )
+
+        sales_order.project_manager_approved_at = (
+            timezone.now()
+        )
+
+        if sales_order.sales_manager_approved_at:
+            sales_order.approval_status = (
+                "APPROVED"
+            )
+        else:
+            sales_order.approval_status = (
+                "PARTIALLY_APPROVED"
+            )
+
+        sales_order.save(
+            update_fields=[
+                "project_manager_approved_by",
+                "project_manager_approved_at",
+                "approval_status",
+                "updated_at",
+            ]
+        )
+
+        approved_count += 1
+
+    if approved_count:
+        self.message_user(
+            request,
+            (
+                f"{approved_count} Sales Order(s) "
+                f"approved by Project Manager."
+            ),
+            level=messages.SUCCESS,
+        )
+
+    if skipped_count:
+        self.message_user(
+            request,
+            (
+                f"{skipped_count} Sales Order(s) were "
+                f"not approved. The order may not be "
+                f"assigned to you or may have the "
+                f"wrong status."
+            ),
+            level=messages.WARNING,
+        )
+
+def get_actions(
+    self,
+    request,
+):
+    actions = super().get_actions(
+        request
+    )
+
+    if not (
+        request.user.is_superuser
+        or request.user.has_perm(
+            "core.submit_sales_order_for_approval"
+        )
+    ):
+        actions.pop(
+            "submit_for_approval",
+            None,
+        )
+
+    if not (
+        request.user.is_superuser
+        or request.user.has_perm(
+            "core.approve_sales_order_as_sales_manager"
+        )
+    ):
+        actions.pop(
+            "approve_as_sales_manager",
+            None,
+        )
+
+    if not (
+        request.user.is_superuser
+        or request.user.has_perm(
+            "core.approve_sales_order_as_project_manager"
+        )
+    ):
+        actions.pop(
+            "approve_as_project_manager",
+            None,
+        )
+
+    return actions
 @admin.register(DocumentCategory)
 class DocumentCategoryAdmin(admin.ModelAdmin):
     list_display = (
