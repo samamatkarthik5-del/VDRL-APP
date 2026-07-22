@@ -147,9 +147,7 @@ class SalesOrderAdmin(admin.ModelAdmin):
     "document_controller",
     "is_active",
     "project_team",
-    "project_manager",
     "application_engineer",
-    "document_controller",
     )
     list_filter = (
         "status",
@@ -176,15 +174,20 @@ class SalesOrderAdmin(admin.ModelAdmin):
         "Sales Order Details",
         {
             "fields": (
-                "sales_order_number",
-                "customer",
-                "project",
-                "project_manager",
-                "document_controller",
-                "order_date",
-                "is_active",
-                "authorized_users",
-            )
+    "sales_order_number",
+    "customer",
+    "project",
+
+    "project_team",
+    "project_manager",
+    "application_engineer",
+    "document_controller",
+    "backup_document_controllers",
+
+    "order_date",
+    "is_active",
+    "authorized_users",
+)
         },
     ),
     (
