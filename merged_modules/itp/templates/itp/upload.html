@@ -1,0 +1,20 @@
+{% extends 'itp/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<div class="card narrow">
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}
+    <div class="field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for error in field.errors %}<div class="error">{{ error }}</div>{% endfor %}
+      {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+    </div>
+  {% endfor %}
+  <button type="submit">Upload and extract</button>
+</form>
+</div>
+{% endblock %}

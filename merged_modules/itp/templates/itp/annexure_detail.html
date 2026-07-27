@@ -1,0 +1,28 @@
+{% extends 'itp/base.html' %}
+{% block title %}{{ annexure }}{% endblock %}
+{% block content %}
+<div class="heading-actions">
+  <div><h1>{{ annexure.document_number }} Rev.{{ annexure.revision }}</h1><p>{{ annexure.title }}</p></div>
+  <div>
+    <a class="button secondary" href="{{ annexure.original_file.url }}">Original Excel</a>
+    {% if perms.itp.activate_annexure and annexure.status != 'ACTIVE' %}
+    <form method="post" action="{% url 'itp:activate_annexure' annexure.pk %}" class="inline">{% csrf_token %}<button type="submit">Activate revision</button></form>
+    {% endif %}
+  </div>
+</div>
+<div class="grid four">
+  <div class="card"><strong>Status</strong><br>{{ annexure.get_status_display }}</div>
+  <div class="card"><strong>Imported</strong><br>{{ annexure.import_summary.imported|default:0 }}</div>
+  <div class="card"><strong>Skipped</strong><br>{{ annexure.import_summary.skipped|default:0 }}</div>
+  <div class="card"><strong>Errors</strong><br>{{ annexure.import_summary.errors|default:0 }}</div>
+</div>
+{% if issues %}
+<h2>Import issues</h2>
+<table><thead><tr><th>Severity</th><th>Location</th><th>Message</th></tr></thead><tbody>{% for issue in issues %}<tr><td>{{ issue.severity }}</td><td>{{ issue.source_location }}</td><td>{{ issue.message }}</td></tr>{% endfor %}</tbody></table>
+{% endif %}
+<h2>Annexure lines - QC review</h2>
+<div class="table-scroll"><table>
+<thead><tr><th>PO line</th><th>Description</th><th>Qty</th><th>Inspection class</th><th>NDE</th><th>Temperature</th><th>Tag</th><th>Piping class</th><th>Service</th><th>Insulation</th><th></th></tr></thead>
+<tbody>{% for line in lines %}<tr><td>{{ line.po_line_no }}</td><td>{{ line.description }}</td><td>{{ line.quantity }}</td><td>{{ line.inspection_class }}</td><td>{{ line.nde_applicable }}</td><td>{{ line.temperature_text }}</td><td>{{ line.tag_number }}</td><td>{{ line.piping_class }}</td><td>{{ line.service }}</td><td>{{ line.insulation }}</td><td><a href="{% url 'itp:edit_annexure_line' line.pk %}">Edit</a></td></tr>{% empty %}<tr><td colspan="11">No lines imported.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

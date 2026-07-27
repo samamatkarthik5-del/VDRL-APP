@@ -1,0 +1,1401 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+Quality Management Portal
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .qms-page {
+        --qms-blue: #155eef;
+        --qms-green: #079455;
+        --qms-orange: #f79009;
+        --qms-red: #d92d20;
+        --qms-purple: #7f56d9;
+        --qms-grey: #667085;
+        --qms-border: #e4e7ec;
+        --qms-background: #f8fafc;
+        --qms-text: #101828;
+        --qms-muted: #667085;
+    }
+
+    .qms-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 28px;
+    }
+
+    .qms-heading h1 {
+        margin: 0 0 8px;
+        color: var(--qms-text);
+        font-size: 30px;
+    }
+
+    .qms-heading p {
+        margin: 0;
+        color: var(--qms-muted);
+    }
+
+    .qms-heading-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .module-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 24px;
+        margin-bottom: 30px;
+    }
+
+    .module-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 285px;
+        padding: 28px;
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid var(--qms-border);
+        border-radius: 20px;
+        color: var(--qms-text);
+        text-decoration: none;
+        box-shadow: 0 8px 24px rgba(16, 24, 40, 0.07);
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            border-color 0.2s ease;
+    }
+
+    .module-card::before {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 7px;
+        content: "";
+    }
+
+    .module-card-vdrl::before {
+        background: var(--qms-blue);
+    }
+
+    .module-card-itp::before {
+        background: var(--qms-green);
+    }
+
+    .module-card-calibration::before {
+        background: var(--qms-orange);
+    }
+
+    .module-card:not(.module-disabled):hover {
+        transform: translateY(-7px);
+        border-color: #b2ccff;
+        box-shadow: 0 18px 42px rgba(16, 24, 40, 0.14);
+    }
+
+    .module-disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+        filter: grayscale(0.5);
+    }
+
+    .module-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .module-icon {
+        display: grid;
+        width: 70px;
+        height: 70px;
+        place-items: center;
+        border-radius: 18px;
+        font-size: 38px;
+    }
+
+    .module-card-vdrl .module-icon {
+        background: #eff4ff;
+    }
+
+    .module-card-itp .module-icon {
+        background: #ecfdf3;
+    }
+
+    .module-card-calibration .module-icon {
+        background: #fffaeb;
+    }
+
+    .module-access {
+        padding: 6px 11px;
+        border-radius: 999px;
+        background: #ecfdf3;
+        color: #027a48;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .module-access-locked {
+        background: #f2f4f7;
+        color: #667085;
+    }
+
+    .module-card h2 {
+        margin: 24px 0 8px;
+        font-size: 25px;
+    }
+
+    .module-description {
+        min-height: 45px;
+        margin: 0;
+        color: var(--qms-muted);
+        line-height: 1.5;
+    }
+
+    .module-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 24px;
+    }
+
+    .module-metric {
+        padding: 12px;
+        border: 1px solid #eaecf0;
+        border-radius: 12px;
+        background: #f9fafb;
+    }
+
+    .module-metric-value {
+        display: block;
+        color: var(--qms-text);
+        font-size: 22px;
+        font-weight: 800;
+    }
+
+    .module-metric-label {
+        display: block;
+        margin-top: 3px;
+        color: var(--qms-muted);
+        font-size: 12px;
+    }
+
+    .module-open {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: auto;
+        padding-top: 22px;
+        font-weight: 700;
+    }
+
+    .module-card-vdrl .module-open {
+        color: var(--qms-blue);
+    }
+
+    .module-card-itp .module-open {
+        color: var(--qms-green);
+    }
+
+    .module-card-calibration .module-open {
+        color: var(--qms-orange);
+    }
+
+    .module-disabled .module-open {
+        color: var(--qms-grey);
+    }
+
+    .qms-section-title {
+        margin: 32px 0 16px;
+        color: var(--qms-text);
+        font-size: 21px;
+    }
+
+    .qms-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 28px;
+    }
+
+    .qms-stat-card {
+        padding: 20px;
+        border: 1px solid var(--qms-border);
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05);
+    }
+
+    .qms-stat-label {
+        color: var(--qms-muted);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .qms-stat-value {
+        margin-top: 8px;
+        color: var(--qms-text);
+        font-size: 29px;
+        font-weight: 800;
+    }
+
+    .qms-stat-card.stat-green {
+        border-left: 5px solid var(--qms-green);
+    }
+
+    .qms-stat-card.stat-blue {
+        border-left: 5px solid var(--qms-blue);
+    }
+
+    .qms-stat-card.stat-purple {
+        border-left: 5px solid var(--qms-purple);
+    }
+
+    .qms-stat-card.stat-red {
+        border-left: 5px solid var(--qms-red);
+    }
+
+    .qms-stat-card.stat-orange {
+        border-left: 5px solid var(--qms-orange);
+    }
+
+    .qms-stat-card.stat-grey {
+        border-left: 5px solid var(--qms-grey);
+    }
+
+    .qms-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 24px;
+        align-items: start;
+    }
+
+    .qms-stack {
+        display: grid;
+        gap: 24px;
+    }
+
+    .qms-panel {
+        overflow: hidden;
+        border: 1px solid var(--qms-border);
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05);
+    }
+
+    .qms-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--qms-border);
+    }
+
+    .qms-panel-header h2 {
+        margin: 0;
+        font-size: 18px;
+    }
+
+    .qms-panel-count {
+        min-width: 30px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: #f2f4f7;
+        color: #344054;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .qms-panel-body {
+        padding: 0;
+    }
+
+    .qms-table-container {
+        overflow-x: auto;
+    }
+
+    .qms-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .qms-table th,
+    .qms-table td {
+        padding: 13px 15px;
+        border-bottom: 1px solid #eaecf0;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .qms-table th {
+        background: #f9fafb;
+        color: #475467;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .qms-table td {
+        color: #344054;
+        font-size: 13px;
+    }
+
+    .qms-table tbody tr:hover {
+        background: #fcfcfd;
+    }
+
+    .qms-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .qms-empty {
+        padding: 32px !important;
+        color: var(--qms-muted) !important;
+        text-align: center !important;
+    }
+
+    .qms-danger-text {
+        color: var(--qms-red);
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .qms-task-list {
+        display: grid;
+    }
+
+    .qms-task {
+        display: flex;
+        gap: 13px;
+        padding: 16px 18px;
+        border-bottom: 1px solid #eaecf0;
+    }
+
+    .qms-task:last-child {
+        border-bottom: 0;
+    }
+
+    .qms-task-icon {
+        display: grid;
+        width: 39px;
+        height: 39px;
+        flex: 0 0 39px;
+        place-items: center;
+        border-radius: 10px;
+        background: #f2f4f7;
+    }
+
+    .qms-task-title {
+        margin: 0 0 3px;
+        color: var(--qms-text);
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .qms-task-text {
+        margin: 0;
+        color: var(--qms-muted);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .qms-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 35px;
+        padding: 7px 12px;
+        border: 0;
+        border-radius: 8px;
+        background: #f2f4f7;
+        color: #344054;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .qms-button:hover {
+        background: #e4e7ec;
+    }
+
+    .qms-button-primary {
+        background: var(--qms-blue);
+        color: #ffffff;
+    }
+
+    .qms-button-primary:hover {
+        background: #004eeb;
+        color: #ffffff;
+    }
+
+    .qms-button-danger {
+        background: #fef3f2;
+        color: #b42318;
+    }
+
+    .qms-progress {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 130px;
+    }
+
+    .qms-progress-track {
+        width: 95px;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #eaecf0;
+    }
+
+    .qms-progress-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: var(--qms-blue);
+    }
+
+    .qms-row-overdue {
+        background: #fffbfa;
+    }
+
+    @media (max-width: 1200px) {
+        .module-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .module-card {
+            min-height: 230px;
+        }
+
+        .qms-stat-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .qms-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 700px) {
+        .qms-heading {
+            flex-direction: column;
+        }
+
+        .qms-stat-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .module-metrics {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
+
+<div class="qms-page">
+
+    <div class="qms-heading">
+
+        <div>
+            <h1>Quality Management Portal</h1>
+
+            <p>
+                Welcome,
+                <strong>
+                    {{ request.user.get_full_name|default:request.user.username }}
+                </strong>.
+                Review VDRL, inspection and calibration activities as of {{ today }}.
+            </p>
+        </div>
+
+        <div class="qms-heading-actions">
+
+            {% if perms.core.view_management_reports %}
+
+                <a
+                    href="{% url 'core:advanced_dashboard' %}"
+                    class="qms-button qms-button-primary"
+                >
+                    Advanced Analytics
+                </a>
+
+                <a
+                    href="{% url 'core:management_reports' %}"
+                    class="qms-button qms-button-primary"
+                >
+                    Management Reports
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <div class="module-grid">
+
+        {% if request.user.is_superuser or perms.core %}
+
+           <a
+    href="{% url 'core:dashboard' %}#vdrl-overview"
+    class="module-card module-card-vdrl"
+>
+
+                <div class="module-top">
+
+                    <div class="module-icon">📁</div>
+
+                    <span class="module-access">
+                        Active
+                    </span>
+
+                </div>
+
+                <h2>VDRL</h2>
+
+                <p class="module-description">
+                    Manage Sales Orders, document requirements, submissions,
+                    customer comments and approval status.
+                </p>
+
+                <div class="module-metrics">
+
+                    <div class="module-metric">
+                        <span class="module-metric-value">
+                            {{ statistics.total_documents|default:0 }}
+                        </span>
+
+                        <span class="module-metric-label">
+                            Total Documents
+                        </span>
+                    </div>
+
+                    <div class="module-metric">
+                        <span class="module-metric-value">
+                            {{ statistics.overdue_documents|default:0 }}
+                        </span>
+
+                        <span class="module-metric-label">
+                            Overdue
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="module-open">
+                    <span>Open VDRL</span>
+                    <span>→</span>
+                </div>
+
+            </a>
+
+        {% else %}
+
+            <div class="module-card module-card-vdrl module-disabled">
+
+                <div class="module-top">
+                    <div class="module-icon">📁</div>
+
+                    <span class="module-access module-access-locked">
+                        No Access
+                    </span>
+                </div>
+
+                <h2>VDRL</h2>
+
+                <p class="module-description">
+                    Manage Sales Orders, document requirements, submissions
+                    and approvals.
+                </p>
+
+                <div class="module-open">
+                    <span>🔒 Module inactive</span>
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+        {% if request.user.is_superuser or perms.itp %}
+
+            <a
+                href="{% url 'itp:dashboard' %}"
+                class="module-card module-card-itp"
+            >
+
+                <div class="module-top">
+
+                    <div class="module-icon">📋</div>
+
+                    <span class="module-access">
+                        Active
+                    </span>
+
+                </div>
+
+                <h2>Send for TPI NOI</h2>
+
+                <p class="module-description">
+                    Upload ITPs and annexures, manage Hold Points, map inspection
+                    clauses and issue customer/TPI notifications.
+                </p>
+
+                <div class="module-metrics">
+
+                    <div class="module-metric">
+                        <span class="module-metric-value">
+                            {{ itp_statistics.pending_nois|default:0 }}
+                        </span>
+
+                        <span class="module-metric-label">
+                            Pending NOIs
+                        </span>
+                    </div>
+
+                    <div class="module-metric">
+                        <span class="module-metric-value">
+                            {{ itp_statistics.open_hold_points|default:0 }}
+                        </span>
+
+                        <span class="module-metric-label">
+                            Open Hold Points
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="module-open">
+                    <span>Open ITP &amp; NOI</span>
+                    <span>→</span>
+                </div>
+
+            </a>
+
+        {% else %}
+
+            <div class="module-card module-card-itp module-disabled">
+
+                <div class="module-top">
+                    <div class="module-icon">📋</div>
+
+                    <span class="module-access module-access-locked">
+                        No Access
+                    </span>
+                </div>
+
+                <h2>Send for TPI NOI</h2>
+
+                <p class="module-description">
+                    Inspection and Test Plan, Hold Point and NOI management.
+                </p>
+
+                <div class="module-open">
+                    <span>🔒 Module inactive</span>
+                </div>
+
+            </div>
+
+        {% endif %}
+
+
+        {% if request.user.is_superuser or perms.calibration %}
+
+            <a
+                href="{% url 'calibration:dashboard' %}"
+                class="module-card module-card-calibration"
+            >
+
+                <div class="module-top">
+
+                    <div class="module-icon">📏</div>
+
+                    <span class="module-access">
+                        Active
+                    </span>
+
+                </div>
+
+                <h2>Calibration</h2>
+
+                <p class="module-description">
+                    Maintain the instrument master list, history cards,
+                    calibration certificates, custodians and due-date alerts.
+                </p>
+
+                <div class="module-metrics">
+
+                    <div class="module-metric">
+                        <span class="module-metric-value">
+                            {{ calibration_statistics.total_instruments|default:0 }}
+                        </span>
+
+                        <span class="module-metric-label">
+                            Instruments
+                        </span>
+                    </div>
+
+                    <div class="module-metric">
+                        <span class="module-metric-value">
+                            {{ calibration_statistics.due_soon|default:0 }}
+                        </span>
+
+                        <span class="module-metric-label">
+                            Due Soon
+                        </span>
+                    </div>
+
+                </div>
+
+                <div class="module-open">
+                    <span>Open Calibration</span>
+                    <span>→</span>
+                </div>
+
+            </a>
+
+        {% else %}
+
+            <div class="module-card module-card-calibration module-disabled">
+
+                <div class="module-top">
+                    <div class="module-icon">📏</div>
+
+                    <span class="module-access module-access-locked">
+                        No Access
+                    </span>
+                </div>
+
+                <h2>Calibration</h2>
+
+                <p class="module-description">
+                    Instrument register, calibration history and certificate
+                    management.
+                </p>
+
+                <div class="module-open">
+                    <span>🔒 Module inactive</span>
+                </div>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <h2 id="vdrl-overview" class="qms-section-title">
+        VDRL Overview
+    </h2>
+
+    <div class="qms-stat-grid">
+
+        <div class="qms-stat-card">
+            <div class="qms-stat-label">Total Documents</div>
+            <div class="qms-stat-value">
+                {{ statistics.total_documents|default:0 }}
+            </div>
+        </div>
+
+        <div class="qms-stat-card stat-green">
+            <div class="qms-stat-label">Approved</div>
+            <div class="qms-stat-value">
+                {{ statistics.approved_documents|default:0 }}
+            </div>
+        </div>
+
+        <div class="qms-stat-card stat-blue">
+            <div class="qms-stat-label">With Customer</div>
+            <div class="qms-stat-value">
+                {{ statistics.with_customer|default:0 }}
+            </div>
+        </div>
+
+        <div class="qms-stat-card stat-purple">
+            <div class="qms-stat-label">Internal Pending</div>
+            <div class="qms-stat-value">
+                {{ statistics.internal_pending|default:0 }}
+            </div>
+        </div>
+
+        <div class="qms-stat-card stat-red">
+            <div class="qms-stat-label">Overdue Documents</div>
+            <div class="qms-stat-value">
+                {{ statistics.overdue_documents|default:0 }}
+            </div>
+        </div>
+
+        <div class="qms-stat-card stat-grey">
+            <div class="qms-stat-label">On Hold</div>
+            <div class="qms-stat-value">
+                {{ statistics.on_hold|default:0 }}
+            </div>
+        </div>
+
+        <div class="qms-stat-card stat-orange">
+            <div class="qms-stat-label">Open CRS Comments</div>
+            <div class="qms-stat-value">
+                {{ statistics.open_crs_comments|default:0 }}
+            </div>
+        </div>
+
+        <div class="qms-stat-card stat-red">
+            <div class="qms-stat-label">Overdue CRS Comments</div>
+            <div class="qms-stat-value">
+                {{ statistics.overdue_crs_comments|default:0 }}
+            </div>
+        </div>
+
+    </div>
+
+
+    <div class="qms-layout">
+
+        <div class="qms-stack">
+
+            <section class="qms-panel">
+
+                <div class="qms-panel-header">
+
+                    <h2>My Pending Actions</h2>
+
+                    <span class="qms-panel-count">
+                        {{ my_actions|length }}
+                    </span>
+
+                </div>
+
+                <div class="qms-panel-body qms-table-container">
+
+                    <table class="qms-table">
+
+                        <thead>
+                            <tr>
+                                <th>Sales Order</th>
+                                <th>Document</th>
+                                <th>Status</th>
+                                <th>Planned Date</th>
+                                <th>Aging</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for document in my_actions %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ document.vdrl.sales_order.sales_order_number }}
+                                    </td>
+
+                                    <td>
+                                        {{ document.document_title }}
+                                    </td>
+
+                                    <td>
+                                        {{ document.get_status_display }}
+                                    </td>
+
+                                    <td>
+                                        {{ document.planned_submission_date|default:"-" }}
+                                    </td>
+
+                                    <td>
+                                        {{ document.current_aging_days }} days
+                                    </td>
+
+                                    <td>
+                                        <a
+                                            href="{% url 'core:document_detail' document.pk %}"
+                                            class="qms-button"
+                                        >
+                                            Open
+                                        </a>
+                                    </td>
+
+                                </tr>
+
+                            {% empty %}
+
+                                <tr>
+                                    <td colspan="6" class="qms-empty">
+                                        No pending actions assigned to you.
+                                    </td>
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <section class="qms-panel">
+
+                <div class="qms-panel-header">
+
+                    <h2>My Open CRS Comments</h2>
+
+                    <span class="qms-panel-count">
+                        {{ my_crs_comments|length }}
+                    </span>
+
+                </div>
+
+                <div class="qms-panel-body qms-table-container">
+
+                    <table class="qms-table">
+
+                        <thead>
+                            <tr>
+                                <th>Sales Order</th>
+                                <th>Document</th>
+                                <th>Comment</th>
+                                <th>Status</th>
+                                <th>Target Date</th>
+                                <th>Aging</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for comment in my_crs_comments %}
+
+                                <tr
+                                    {% if comment.is_overdue %}
+                                        class="qms-row-overdue"
+                                    {% endif %}
+                                >
+
+                                    <td>
+                                        {{ comment.crs.document.vdrl.sales_order.sales_order_number }}
+                                    </td>
+
+                                    <td>
+                                        {{ comment.crs.document.document_title }}
+                                    </td>
+
+                                    <td>
+                                        {{ comment.customer_comment|truncatechars:90 }}
+                                    </td>
+
+                                    <td>
+                                        {{ comment.get_status_display }}
+                                    </td>
+
+                                    <td>
+                                        {{ comment.target_response_date|default:"-" }}
+                                    </td>
+
+                                    <td>
+                                        {{ comment.aging_days }} days
+
+                                        {% if comment.is_overdue %}
+                                            <div class="qms-danger-text">
+                                                Overdue
+                                            </div>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <a
+                                            href="{% url 'core:crs_comment_edit' comment.pk %}"
+                                            class="qms-button qms-button-primary"
+                                        >
+                                            Open
+                                        </a>
+                                    </td>
+
+                                </tr>
+
+                            {% empty %}
+
+                                <tr>
+                                    <td colspan="7" class="qms-empty">
+                                        No open CRS comments assigned to you.
+                                    </td>
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <aside class="qms-stack">
+
+            <section class="qms-panel">
+
+                <div class="qms-panel-header">
+                    <h2>Today’s Attention</h2>
+                </div>
+
+                <div class="qms-task-list">
+
+                    <div class="qms-task">
+
+                        <div class="qms-task-icon">🔴</div>
+
+                        <div>
+                            <p class="qms-task-title">
+                                {{ statistics.overdue_documents|default:0 }}
+                                overdue documents
+                            </p>
+
+                            <p class="qms-task-text">
+                                Review overdue internal and customer-held documents.
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <div class="qms-task">
+
+                        <div class="qms-task-icon">💬</div>
+
+                        <div>
+                            <p class="qms-task-title">
+                                {{ statistics.open_crs_comments|default:0 }}
+                                open CRS comments
+                            </p>
+
+                            <p class="qms-task-text">
+                                Customer comments requiring resolution or response.
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <div class="qms-task">
+
+                        <div class="qms-task-icon">🛑</div>
+
+                        <div>
+                            <p class="qms-task-title">
+                                {{ itp_statistics.open_hold_points|default:0 }}
+                                open Hold Points
+                            </p>
+
+                            <p class="qms-task-text">
+                                Activities that must be completed and released.
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <div class="qms-task">
+
+                        <div class="qms-task-icon">⏱️</div>
+
+                        <div>
+                            <p class="qms-task-title">
+                                {{ calibration_statistics.due_soon|default:0 }}
+                                calibrations due soon
+                            </p>
+
+                            <p class="qms-task-text">
+                                Instruments approaching their next calibration date.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="qms-panel">
+
+                <div class="qms-panel-header">
+                    <h2>Quick Access</h2>
+                </div>
+
+                <div class="qms-task-list">
+
+                    <a
+    href="#vdrl-overview"
+    class="module-card module-card-vdrl"
+>
+
+                        <div class="qms-task-icon">📂</div>
+
+                        <div>
+                            <p class="qms-task-title">Open Work Bucket</p>
+
+                            <p class="qms-task-text">
+                                Review your assigned VDRL activities.
+                            </p>
+                        </div>
+
+                    </a>
+
+                    {% if request.user.is_superuser or perms.itp %}
+
+                        <a href="{% url 'itp:dashboard' %}" class="qms-task">
+
+                            <div class="qms-task-icon">📋</div>
+
+                            <div>
+                                <p class="qms-task-title">Raise or Review NOI</p>
+
+                                <p class="qms-task-text">
+                                    Open the inspection and notification module.
+                                </p>
+                            </div>
+
+                        </a>
+
+                    {% endif %}
+
+                    {% if request.user.is_superuser or perms.calibration %}
+
+                        <a href="{% url 'calibration:dashboard' %}" class="qms-task">
+
+                            <div class="qms-task-icon">📏</div>
+
+                            <div>
+                                <p class="qms-task-title">
+                                    Calibration Master List
+                                </p>
+
+                                <p class="qms-task-text">
+                                    Review instruments, status and due dates.
+                                </p>
+                            </div>
+
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </section>
+
+        </aside>
+
+    </div>
+
+
+    <h2 class="qms-section-title">
+        Overdue Documents
+    </h2>
+
+    <section class="qms-panel">
+
+        <div class="qms-panel-body qms-table-container">
+
+            <table class="qms-table">
+
+                <thead>
+                    <tr>
+                        <th>Sales Order</th>
+                        <th>Customer</th>
+                        <th>Document</th>
+                        <th>Status</th>
+                        <th>Holder</th>
+                        <th>Planned / Due Date</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for document in overdue_documents %}
+
+                        <tr class="qms-row-overdue">
+
+                            <td>
+                                {{ document.vdrl.sales_order.sales_order_number }}
+                            </td>
+
+                            <td>
+                                {{ document.vdrl.sales_order.customer.name }}
+                            </td>
+
+                            <td>
+                                {{ document.document_title }}
+                            </td>
+
+                            <td>
+                                {{ document.get_status_display }}
+                            </td>
+
+                            <td>
+                                {{ document.current_holder }}
+                            </td>
+
+                            <td>
+
+                                {% if document.current_holder == "Customer" %}
+
+                                    {{ document.customer_review_due_date|default:"-" }}
+
+                                {% else %}
+
+                                    {{ document.planned_submission_date|default:"-" }}
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+                                <a
+                                    href="{% url 'core:document_detail' document.pk %}"
+                                    class="qms-button qms-button-danger"
+                                >
+                                    Review
+                                </a>
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+                            <td colspan="7" class="qms-empty">
+                                No overdue documents.
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <h2 class="qms-section-title">
+        Active Sales Orders
+    </h2>
+
+    <section class="qms-panel">
+
+        <div class="qms-panel-body qms-table-container">
+
+            <table class="qms-table">
+
+                <thead>
+                    <tr>
+                        <th>Sales Order</th>
+                        <th>Customer</th>
+                        <th>Project</th>
+                        <th>Documents</th>
+                        <th>Approved</th>
+                        <th>With Customer</th>
+                        <th>Progress</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for row in sales_order_rows %}
+
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    {{ row.sales_order.sales_order_number }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                {{ row.sales_order.customer.name }}
+                            </td>
+
+                            <td>
+                                {{ row.sales_order.project|default:"-" }}
+                            </td>
+
+                            <td>
+                                {{ row.total_count }}
+                            </td>
+
+                            <td>
+                                {{ row.approved_count }}
+                            </td>
+
+                            <td>
+                                {{ row.customer_count }}
+                            </td>
+
+                            <td>
+
+                                <div class="qms-progress">
+
+                                    <div class="qms-progress-track">
+
+                                        <div
+                                            class="qms-progress-fill"
+                                            style="width: {{ row.progress }}%;"
+                                        ></div>
+
+                                    </div>
+
+                                    <span>
+                                        {{ row.progress }}%
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+                                <a
+                                    href="{% url 'core:sales_order_vdrl' row.sales_order.pk %}"
+                                    class="qms-button qms-button-primary"
+                                >
+                                    Open VDRL
+                                </a>
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+                            <td colspan="8" class="qms-empty">
+                                No active Sales Orders.
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}

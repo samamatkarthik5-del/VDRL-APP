@@ -1,0 +1,390 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+Audit Log | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            VDRL Audit Log
+        </h1>
+
+        <p class="muted">
+            Searchable application and document
+            change history
+        </p>
+
+    </div>
+
+</div>
+
+
+<section class="panel">
+
+    <form
+        method="get"
+        class="filter-form audit-filter-form"
+    >
+
+        <div>
+
+            <label>
+                Search
+            </label>
+
+            <input
+                type="text"
+                name="search"
+                value="{{ filters.search }}"
+                class="form-control"
+                placeholder="Document, Sales Order or description"
+            >
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Action
+            </label>
+
+            <select
+                name="action"
+                class="form-control"
+            >
+
+                <option value="">
+                    All Actions
+                </option>
+
+                {% for value, label in action_choices %}
+
+                    <option
+                        value="{{ value }}"
+
+                        {% if filters.action == value %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ label }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                User
+            </label>
+
+            <select
+                name="actor"
+                class="form-control"
+            >
+
+                <option value="">
+                    All Users
+                </option>
+
+                {% for actor in actor_options %}
+
+                    <option
+                        value="{{ actor.actor_id }}"
+
+                        {% if filters.actor == actor.actor_id|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {% if actor.actor__first_name or actor.actor__last_name %}
+
+                            {{ actor.actor__first_name }}
+                            {{ actor.actor__last_name }}
+
+                        {% else %}
+
+                            {{ actor.actor__username }}
+
+                        {% endif %}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Record Type
+            </label>
+
+            <select
+                name="model"
+                class="form-control"
+            >
+
+                <option value="">
+                    All Record Types
+                </option>
+
+                {% for model in model_options %}
+
+                    <option
+                        value="{{ model }}"
+
+                        {% if filters.model == model %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ model }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Date From
+            </label>
+
+            <input
+                type="date"
+                name="date_from"
+                value="{{ filters.date_from }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div>
+
+            <label>
+                Date To
+            </label>
+
+            <input
+                type="date"
+                name="date_to"
+                value="{{ filters.date_to }}"
+                class="form-control"
+            >
+
+        </div>
+
+
+        <div class="filter-actions">
+
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Apply Filters
+            </button>
+
+            <a
+                href="{% url 'core:audit_log_list' %}"
+                class="button"
+            >
+                Clear
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Date and Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Record Type</th>
+                    <th>Record</th>
+                    <th>Sales Order</th>
+                    <th>Description</th>
+                    <th>IP Address</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for log in page_obj %}
+
+                    <tr>
+
+                        <td>
+                            {{ log.created_at|date:"d-M-Y H:i:s" }}
+                        </td>
+
+
+                        <td>
+
+                            {% if log.actor %}
+
+                                {{ log.actor.get_full_name|default:log.actor.username }}
+
+                            {% else %}
+
+                                System
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            <span
+                                class="
+                                    audit-action
+                                    audit-action-{{ log.action|lower }}
+                                "
+                            >
+                                {{ log.get_action_display }}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+                            {{ log.model_label|default:"-" }}
+                        </td>
+
+
+                        <td>
+                            {{ log.object_repr|default:"-" }}
+                        </td>
+
+
+                        <td>
+
+                            {% if log.sales_order %}
+
+                                {{ log.sales_order.sales_order_number }}
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ log.description|truncatechars:120 }}
+                        </td>
+
+
+                        <td>
+                            {{ log.ip_address|default:"-" }}
+                        </td>
+
+
+                        <td>
+
+                            <a
+                                href="{% url 'core:audit_log_detail' log.pk %}"
+                                class="button button-small"
+                            >
+                                Details
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="9"
+                            class="empty-state"
+                        >
+                            No audit records match
+                            the selected filters.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+{% if page_obj.has_other_pages %}
+
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+
+            <a
+                href="?page={{ page_obj.previous_page_number }}"
+                class="button"
+            >
+                Previous
+            </a>
+
+        {% endif %}
+
+        <span>
+            Page {{ page_obj.number }}
+            of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+
+            <a
+                href="?page={{ page_obj.next_page_number }}"
+                class="button"
+            >
+                Next
+            </a>
+
+        {% endif %}
+
+    </div>
+
+{% endif %}
+
+{% endblock %}

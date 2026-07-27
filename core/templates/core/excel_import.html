@@ -1,0 +1,324 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+{{ page_title }} | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="breadcrumb">
+
+    <a
+        href="{% url 'core:import_center' %}"
+    >
+        Import Center
+    </a>
+
+</div>
+
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            {{ page_title }}
+        </h1>
+
+        <p class="muted">
+            {{ description }}
+        </p>
+
+    </div>
+
+
+    <div class="header-actions">
+
+        <a
+            href="{% url 'core:download_excel_import_template' template_type %}"
+            class="button"
+        >
+            Download Excel Template
+        </a>
+
+    </div>
+
+</div>
+
+
+<section class="panel form-panel">
+
+    <form
+        method="post"
+        enctype="multipart/form-data"
+    >
+
+        {% csrf_token %}
+
+
+        {% if form.non_field_errors %}
+
+            <div class="alert alert-error">
+
+                {{ form.non_field_errors }}
+
+            </div>
+
+        {% endif %}
+
+
+        {% for field in form %}
+
+            <div class="form-group">
+
+                {% if field.field.widget.input_type == "checkbox" %}
+
+                    <label
+                        class="checkbox-label"
+                    >
+
+                        {{ field }}
+
+                        {{ field.label }}
+
+                    </label>
+
+                {% else %}
+
+                    <label
+                        for="{{ field.id_for_label }}"
+                    >
+                        {{ field.label }}
+                    </label>
+
+                    {{ field }}
+
+                {% endif %}
+
+
+                {% if field.help_text %}
+
+                    <div class="help-text">
+                        {{ field.help_text }}
+                    </div>
+
+                {% endif %}
+
+
+                {% for error in field.errors %}
+
+                    <div class="field-error">
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endfor %}
+
+
+        <div class="form-actions">
+
+            <button
+                type="submit"
+                class="button button-primary"
+            >
+                Validate / Import
+            </button>
+
+            <a
+                href="{% url 'core:import_center' %}"
+                class="button"
+            >
+                Cancel
+            </a>
+
+        </div>
+
+    </form>
+
+</section>
+
+
+{% if result %}
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <h2>
+                Import Result
+            </h2>
+
+        </div>
+
+
+        <div class="import-result-summary">
+
+            <div>
+
+                <span class="detail-label">
+                    Mode
+                </span>
+
+                <strong>
+
+                    {% if result.dry_run %}
+                        Dry Run - No Data Saved
+                    {% else %}
+                        Database Import
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span class="detail-label">
+                    Rows Processed
+                </span>
+
+                <strong>
+                    {{ result.processed }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span class="detail-label">
+                    Would Create / Created
+                </span>
+
+                <strong>
+                    {{ result.created }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span class="detail-label">
+                    Would Update / Updated
+                </span>
+
+                <strong>
+                    {{ result.updated }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span class="detail-label">
+                    Errors
+                </span>
+
+                <strong>
+                    {{ result.errors|length }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        {% if result.success %}
+
+            {% if result.dry_run %}
+
+                <div class="alert alert-info">
+
+                    Validation completed successfully.
+                    No database records were changed.
+
+                    Remove the
+                    <strong>Dry Run</strong>
+                    option and upload the same validated
+                    file again to complete the import.
+
+                </div>
+
+            {% else %}
+
+                <div class="alert alert-success">
+
+                    Import completed successfully.
+
+                    {{ result.created }}
+                    record(s) created and
+
+                    {{ result.updated }}
+                    record(s) updated.
+
+                </div>
+
+            {% endif %}
+
+        {% else %}
+
+            <div class="alert alert-error">
+
+                Import was not completed.
+
+                Correct all errors below and
+                upload the file again.
+
+                No import records were saved.
+
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Excel Row</th>
+                            <th>Error</th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for error in result.errors %}
+
+                            <tr>
+
+                                <td>
+                                    {{ error.row }}
+                                </td>
+
+                                <td>
+                                    {{ error.message }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+{% endif %}
+
+{% endblock %}

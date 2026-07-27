@@ -1,0 +1,27 @@
+Dear {{ recipient_name }},
+
+This is your VDRL action summary for {{ notification_date }}.
+
+Total Actions Requiring Attention: {{ item_count }}
+
+{% for alert in alerts %}
+------------------------------------------------------------
+{{ alert.severity_label }}
+{{ alert.category }}
+
+Sales Order: {{ alert.sales_order }}
+Customer: {{ alert.customer }}
+Reference: {{ alert.reference }}
+Item: {{ alert.title }}
+Status: {{ alert.status }}
+Due Date: {{ alert.due_date }}
+Timing: {{ alert.timing_text }}
+
+Open:
+{{ alert.link }}
+
+{% endfor %}
+
+Please review the actions and update the VDRL system accordingly.
+
+VDRL Management System

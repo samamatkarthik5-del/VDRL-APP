@@ -1,0 +1,278 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+Audit Details | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="breadcrumb">
+
+    <a href="{% url 'core:audit_log_list' %}">
+        Audit Log
+    </a>
+
+</div>
+
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            Audit Record Details
+        </h1>
+
+        <p class="muted">
+            {{ audit_log.created_at|date:"d-M-Y H:i:s" }}
+        </p>
+
+    </div>
+
+</div>
+
+
+<section class="panel">
+
+    <div class="info-grid">
+
+        <div>
+
+            <span class="detail-label">
+                User
+            </span>
+
+            <strong>
+
+                {% if audit_log.actor %}
+
+                    {{ audit_log.actor.get_full_name|default:audit_log.actor.username }}
+
+                {% else %}
+
+                    System
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                Action
+            </span>
+
+            <strong>
+                {{ audit_log.get_action_display }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                Record Type
+            </span>
+
+            <strong>
+                {{ audit_log.model_label|default:"-" }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                Record ID
+            </span>
+
+            <strong>
+                {{ audit_log.object_id|default:"-" }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                Sales Order
+            </span>
+
+            <strong>
+
+                {% if audit_log.sales_order %}
+
+                    {{ audit_log.sales_order.sales_order_number }}
+
+                {% else %}
+
+                    -
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                IP Address
+            </span>
+
+            <strong>
+                {{ audit_log.ip_address|default:"-" }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                Request
+            </span>
+
+            <strong>
+                {{ audit_log.request_method }}
+                {{ audit_log.request_path }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                Object
+            </span>
+
+            <strong>
+                {{ audit_log.object_repr|default:"-" }}
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    {% if audit_log.description %}
+
+        <div class="audit-description">
+
+            <span class="detail-label">
+                Description
+            </span>
+
+            <p>
+                {{ audit_log.description }}
+            </p>
+
+        </div>
+
+    {% endif %}
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            Field Changes
+        </h2>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Field</th>
+                    <th>Previous Value</th>
+                    <th>New Value</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for field_name, change in audit_log.changes.items %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ field_name }}
+                            </strong>
+                        </td>
+
+                        <td class="audit-value">
+                            {{ change.old|default_if_none:"-" }}
+                        </td>
+
+                        <td class="audit-value">
+                            {{ change.new|default_if_none:"-" }}
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="3"
+                            class="empty-state"
+                        >
+                            No field-level changes
+                            were recorded for this event.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+{% if audit_log.event_data %}
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <h2>
+                Additional Event Data
+            </h2>
+
+        </div>
+
+        <pre class="audit-json">{{ audit_log.event_data }}</pre>
+
+    </section>
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,289 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+Document Workflow | VDRL
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <h1>{{ document }}</h1>
+
+        <p class="muted">
+            {{ workflow.get_status_display }}
+        </p>
+    </div>
+
+    <div class="header-actions">
+        <a
+            href="{% url 'core:workflow_assign_department' document.pk %}"
+            class="button"
+        >
+            Assign Department
+        </a>
+
+        {% if workflow.department %}
+            <a
+                href="{% url 'core:workflow_assign_contributor' document.pk %}"
+                class="button"
+            >
+                Assign Contributor
+            </a>
+        {% endif %}
+
+        {% if workflow.contributor %}
+            <a
+                href="{% url 'core:workflow_reassign_contributor' document.pk %}"
+                class="button"
+            >
+                Reassign
+            </a>
+
+            <a
+                href="{% url 'core:workflow_raise_open_point' document.pk %}"
+                class="button"
+            >
+                Raise Open Point
+            </a>
+
+            <a
+                href="{% url 'core:workflow_submit_for_review' document.pk %}"
+                class="button button-primary"
+            >
+                Submit for Review
+            </a>
+        {% endif %}
+
+        {% if workflow.status == "SUBMITTED_FOR_DEPARTMENT_REVIEW" %}
+            <a
+                href="{% url 'core:workflow_department_review' document.pk %}"
+                class="button button-primary"
+            >
+                Department Review
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+
+<section class="panel">
+
+    <div class="info-grid">
+        <div>
+            <span class="detail-label">
+                Department
+            </span>
+
+            <strong>
+                {{ workflow.department|default:"Not assigned" }}
+            </strong>
+        </div>
+
+        <div>
+            <span class="detail-label">
+                Contributor
+            </span>
+
+            <strong>
+                {{ workflow.contributor|default:"Not assigned" }}
+            </strong>
+        </div>
+
+        <div>
+            <span class="detail-label">
+                Planned Submission
+            </span>
+
+            <strong>
+                {{ workflow.planned_submission_date|date:"d-M-Y"|default:"Not set" }}
+            </strong>
+        </div>
+
+        <div>
+            <span class="detail-label">
+                Blocking Open Points
+            </span>
+
+            <strong>
+                {% if workflow.has_blocking_open_points %}
+                    Yes
+                {% else %}
+                    No
+                {% endif %}
+            </strong>
+        </div>
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+        <h2>Open Points</h2>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Application Engineer</th>
+                    <th>Cycles</th>
+                    <th>Total Open Time</th>
+                    <th>Required By</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for point in open_points %}
+                    <tr>
+                        <td>{{ point.reference_number }}</td>
+                        <td>{{ point.subject }}</td>
+                        <td>{{ point.get_status_display }}</td>
+                        <td>{{ point.application_engineer }}</td>
+                        <td>{{ point.response_cycle }}</td>
+                        <td>
+                            {{ point.total_open_seconds }}
+                            seconds
+                        </td>
+                        <td>
+                            {{ point.required_by|date:"d-M-Y"|default:"-" }}
+                        </td>
+                        <td>
+                            {% if point.status == "OPEN" or point.status == "MORE_INFORMATION_REQUIRED" %}
+                                <a
+                                    href="{% url 'core:open_point_respond' point.pk %}"
+                                    class="button button-small"
+                                >
+                                    Respond
+                                </a>
+                            {% endif %}
+
+                            {% if point.status == "RESPONDED" %}
+                                <a
+                                    href="{% url 'core:open_point_decide' point.pk %}"
+                                    class="button button-small"
+                                >
+                                    Verify
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="8">
+                            <details>
+                                <summary>
+                                    Transaction History
+                                </summary>
+
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Action</th>
+                                            <th>By</th>
+                                            <th>Responsible Time</th>
+                                            <th>Comment</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        {% for transaction in point.transactions.all %}
+                                            <tr>
+                                                <td>
+                                                    {{ transaction.created_at|date:"d-M-Y H:i" }}
+                                                </td>
+                                                <td>
+                                                    {{ transaction.get_action_display }}
+                                                </td>
+                                                <td>
+                                                    {{ transaction.performed_by|default:"System" }}
+                                                </td>
+                                                <td>
+                                                    {{ transaction.get_responsible_party_display }}
+                                                    —
+                                                    {{ transaction.elapsed_since_previous_seconds }}
+                                                    seconds
+                                                </td>
+                                                <td>
+                                                    {{ transaction.comment }}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </details>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            No open points have been raised.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+        <h2>Workflow Transaction History</h2>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Action</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Actor</th>
+                    <th>Previous Status Time</th>
+                    <th>Comment</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for transaction in transactions %}
+                    <tr>
+                        <td>
+                            {{ transaction.created_at|date:"d-M-Y H:i" }}
+                        </td>
+                        <td>
+                            {{ transaction.get_action_display }}
+                        </td>
+                        <td>{{ transaction.from_status }}</td>
+                        <td>{{ transaction.to_status }}</td>
+                        <td>{{ transaction.actor|default:"System" }}</td>
+                        <td>
+                            {{ transaction.elapsed_seconds }}
+                            seconds
+                        </td>
+                        <td>{{ transaction.comment }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            No workflow transactions.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</section>
+
+{% endblock %}

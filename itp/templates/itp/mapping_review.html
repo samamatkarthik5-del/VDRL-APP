@@ -1,0 +1,19 @@
+{% extends 'itp/base.html' %}
+{% block title %}Mapping Review{% endblock %}
+{% block content %}
+<h1>ITP Applicability Matrix</h1>
+<p><strong>ITP:</strong> {{ itp }} &nbsp; <strong>Annexure:</strong> {{ annexure }}</p>
+<form method="get" class="filters">
+<select name="clause"><option value="">All clauses</option>{% for clause in clauses %}<option value="{{ clause.pk }}">{{ clause.clause_code }} - {{ clause.activity|truncatechars:55 }}</option>{% endfor %}</select>
+<select name="line"><option value="">All lines</option>{% for line in lines %}<option value="{{ line.pk }}">{{ line.po_line_no }} - {{ line.tag_number|default:line.description|truncatechars:55 }}</option>{% endfor %}</select>
+<button type="submit" class="secondary">Filter</button>
+</form>
+<form method="post">{% csrf_token %}
+<div class="actionbar"><button name="action" value="approve">Approve selected</button><button name="action" value="reject" class="danger">Reject selected</button></div>
+<div class="table-scroll"><table>
+<thead><tr><th><input type="checkbox" id="select-all"></th><th>Clause</th><th>Activity</th><th>Annexure line</th><th>Tag</th><th>Qty</th><th>Suggested</th><th>Review status</th><th>Rationale</th></tr></thead>
+<tbody>{% for mapping in mappings %}<tr class="{% if mapping.clause.is_hold_point %}hold-row{% endif %}"><td><input type="checkbox" name="mapping_ids" value="{{ mapping.pk }}"></td><td>{{ mapping.clause.clause_code }}{% if mapping.clause.is_hold_point %}<span class="hold-badge">HOLD</span>{% endif %}</td><td>{{ mapping.clause.activity|truncatechars:90 }}</td><td>{{ mapping.annexure_line.po_line_no }}</td><td>{{ mapping.annexure_line.tag_number }}</td><td>{{ mapping.annexure_line.quantity }}</td><td>{{ mapping.is_applicable|yesno:'Applicable,Not applicable' }}</td><td>{{ mapping.get_review_status_display }}</td><td>{{ mapping.rationale }}</td></tr>{% empty %}<tr><td colspan="9">No mappings generated.</td></tr>{% endfor %}</tbody>
+</table></div>
+</form>
+{% endblock %}
+{% block scripts %}<script>document.getElementById('select-all')?.addEventListener('change', function(){document.querySelectorAll('input[name="mapping_ids"]').forEach(x => x.checked=this.checked);});</script>{% endblock %}

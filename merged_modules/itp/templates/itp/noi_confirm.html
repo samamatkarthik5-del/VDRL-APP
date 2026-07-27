@@ -1,0 +1,15 @@
+{% extends 'itp/base.html' %}
+{% block title %}Confirm {{ noi.number }}{% endblock %}
+{% block content %}
+<h1>Confirm completion - {{ noi.number }}</h1>
+<p>The scheduled activity ended on <strong>{{ noi.scheduled_end|date:'d-M-Y H:i' }}</strong>. Confirm whether it was completed.</p>
+<form method="post">{% csrf_token %}
+<div class="card">{{ form.non_field_errors }}{% for field in form %}<div class="field"><label>{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="error">{{ error }}</div>{% endfor %}</div>{% endfor %}</div>
+{{ formset.management_form }}
+<h2>Coverage completion details</h2>
+<table><thead><tr><th>Clause</th><th>Line</th><th>Offered qty</th><th>Completed qty</th><th>Actual completion</th><th>Result</th><th>Report reference</th></tr></thead><tbody>
+{% for subform, coverage in rows %}<tr><td>{{ coverage.clause.clause_code }}{{ subform.coverage_id }}</td><td>{{ coverage.annexure_line.po_line_no }}</td><td>{{ coverage.offered_quantity }}</td><td>{{ subform.completed_quantity }}{{ subform.completed_quantity.errors }}</td><td>{{ subform.actual_completion_at }}</td><td>{{ subform.result }}</td><td>{{ subform.report_reference }}</td></tr>{% endfor %}
+</tbody></table>
+<button type="submit">Submit completion confirmation</button>
+</form>
+{% endblock %}

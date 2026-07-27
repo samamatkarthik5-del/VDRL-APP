@@ -1,0 +1,37 @@
+{% extends "operations_portal/base.html" %}
+{% block title %}Calibration Dashboard{% endblock %}
+{% block content %}
+<div class="page-header"><div><p class="eyebrow">Calibration Management</p><h1>Calibration dashboard</h1><div style="margin: 15px 0 25px;">
+
+    {% if request.user.is_staff %}
+
+        <a
+            href="{% url 'calibration:import_excel' %}"
+            style="
+                display: inline-block;
+                padding: 10px 16px;
+                border-radius: 8px;
+                background: #155eef;
+                color: white;
+                text-decoration: none;
+                font-weight: 700;
+            "
+        >
+            Import Calibration Excel
+        </a>
+
+    {% endif %}
+
+</div></div><div><a class="button" href="{% url 'calibration:instrument_create' %}">Add instrument</a></div></div>
+<div class="module-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:24px">
+<div class="panel"><strong>Total instruments</strong><h2>{{ total_count }}</h2></div>
+<div class="panel"><strong>Due within 15 days</strong><h2>{{ due_soon_count }}</h2></div>
+<div class="panel"><strong>Overdue</strong><h2>{{ overdue_count }}</h2></div>
+<div class="panel"><strong>At laboratory</strong><h2>{{ at_lab_count }}</h2></div>
+</div>
+<div class="page-header"><h2>Due and overdue instruments</h2><div><a class="button secondary" href="{% url 'calibration:instrument_list' %}">Instrument register</a> <a class="button secondary" href="{% url 'calibration:master_list' %}">Audit master list</a></div></div>
+<div class="panel" style="overflow:auto">
+<table><thead><tr><th>Asset No.</th><th>Description</th><th>Custodian</th><th>Latest calibration</th><th>Next due</th><th>Status</th></tr></thead><tbody>
+{% for item in due_instruments %}<tr><td><a href="{% url 'calibration:instrument_detail' item.pk %}">{{ item.asset_number }}</a></td><td>{{ item.description }}</td><td>{{ item.custodian|default:"—" }}</td><td>{{ item.latest_calibration_date|date:"d-M-Y"|default:"—" }}</td><td>{{ item.next_due_date|date:"d-M-Y"|default:"—" }}</td><td><span class="status">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="6">No due instruments.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

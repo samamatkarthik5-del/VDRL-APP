@@ -1,0 +1,192 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+Excel Import Center | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            Excel Import Center
+        </h1>
+
+        <p class="muted">
+            Bulk-load VDRL and CRS data
+            with validation before saving.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="import-card-grid">
+
+
+    {% if can_import_customer_templates %}
+
+        <section class="import-card">
+
+            <h2>
+                Customer VDRL Template
+            </h2>
+
+            <p>
+                Import the document requirements
+                belonging to a customer-specific
+                VDRL template.
+            </p>
+
+            <div class="form-actions">
+
+                <a
+                    href="{% url 'core:import_customer_template' %}"
+                    class="button button-primary"
+                >
+                    Import Data
+                </a>
+
+                <a
+                    href="{% url 'core:download_excel_import_template' 'CUSTOMER_TEMPLATE' %}"
+                    class="button"
+                >
+                    Download Template
+                </a>
+
+            </div>
+
+        </section>
+
+    {% endif %}
+
+
+    {% if can_import_sales_order_vdrl %}
+
+        <section class="import-card">
+
+            <h2>
+                Sales Order VDRL
+            </h2>
+
+            <p>
+                Import actual VDRL document rows
+                for an existing Sales Order.
+            </p>
+
+            <div class="form-actions">
+
+                <a
+                    href="{% url 'core:import_sales_order_vdrl' %}"
+                    class="button button-primary"
+                >
+                    Import Data
+                </a>
+
+                <a
+                    href="{% url 'core:download_excel_import_template' 'SALES_ORDER_VDRL' %}"
+                    class="button"
+                >
+                    Download Template
+                </a>
+
+            </div>
+
+        </section>
+
+    {% endif %}
+
+
+    {% if can_import_crs %}
+
+        <section class="import-card">
+
+            <h2>
+                CRS Comments
+            </h2>
+
+            <p>
+                Import individual customer comments
+                into an existing CRS Register.
+            </p>
+
+            <div class="form-actions">
+
+                <a
+                    href="{% url 'core:import_crs_comments' %}"
+                    class="button button-primary"
+                >
+                    Import Data
+                </a>
+
+                <a
+                    href="{% url 'core:download_excel_import_template' 'CRS_COMMENTS' %}"
+                    class="button"
+                >
+                    Download Template
+                </a>
+
+            </div>
+
+        </section>
+
+    {% endif %}
+
+</div>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            Recommended Import Process
+        </h2>
+
+    </div>
+
+    <div class="import-instructions">
+
+        <ol>
+
+            <li>
+                Download the correct Excel template.
+            </li>
+
+            <li>
+                Enter the data without changing
+                the column headers.
+            </li>
+
+            <li>
+                Upload with
+                <strong>Dry Run</strong>
+                selected.
+            </li>
+
+            <li>
+                Correct all reported row errors.
+            </li>
+
+            <li>
+                Upload the corrected file again.
+            </li>
+
+            <li>
+                Remove
+                <strong>Dry Run</strong>
+                and complete the import.
+            </li>
+
+        </ol>
+
+    </div>
+
+</section>
+
+{% endblock %}

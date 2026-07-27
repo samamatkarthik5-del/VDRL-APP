@@ -1,0 +1,31 @@
+{% extends "operations_portal/base.html" %}
+{% block title %}Quality Operations{% endblock %}
+{% block content %}
+<section class="hero">
+    <p class="eyebrow">Integrated Quality Management</p>
+    <h1>Select an application</h1>
+    <p>Only modules authorised for your account are active.</p>
+</section>
+<section class="module-grid">
+    {% for card in cards %}
+        {% if card.enabled %}
+            <a class="module-card active" href="{{ card.url }}">
+        {% else %}
+            <div class="module-card inactive" aria-disabled="true">
+        {% endif %}
+            <div class="module-icon {{ card.icon }}" aria-hidden="true">
+                {% if card.icon == "documents" %}
+                <svg viewBox="0 0 64 64"><path d="M16 8h24l10 10v38H16z"/><path d="M40 8v12h12M23 30h20M23 39h20M23 48h14"/></svg>
+                {% elif card.icon == "inspection" %}
+                <svg viewBox="0 0 64 64"><path d="M20 10h24v8h8v38H12V18h8z"/><path d="M24 8h16v12H24zM21 32l7 7 15-16M21 48h22"/></svg>
+                {% else %}
+                <svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="21"/><path d="M19 43a16 16 0 0 1 26 0M32 34l10-11M14 16h36M22 8h20"/></svg>
+                {% endif %}
+            </div>
+            <h2>{{ card.title }}</h2>
+            <p>{{ card.subtitle }}</p>
+            {% if card.enabled %}<span class="card-action">Open application →</span>{% else %}<span class="card-lock">Inactive — access not assigned</span>{% endif %}
+        {% if card.enabled %}</a>{% else %}</div>{% endif %}
+    {% endfor %}
+</section>
+{% endblock %}

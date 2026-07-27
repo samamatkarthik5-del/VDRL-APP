@@ -1,0 +1,32 @@
+{% extends 'itp/base.html' %}
+{% block title %}Raise NOI{% endblock %}
+{% block content %}
+<h1>Raise Notice of Inspection</h1>
+<div class="card">
+<form method="post" id="noi-form">{% csrf_token %}
+{{ form.non_field_errors }}
+<div class="grid two">{% for field in form %}<div class="field"><label>{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="error">{{ error }}</div>{% endfor %}</div>{% endfor %}</div>
+<h2>ITP clause and annexure coverage</h2>
+<p>Every row records one combination of NOI + ITP clause + annexure line + offered quantity.</p>
+{{ formset.management_form }}
+<div class="table-scroll"><table id="coverage-table"><thead><tr><th>ITP clause</th><th>Annexure line</th><th>Offered qty</th><th>Heat numbers</th><th>Serial numbers</th><th>Delete</th></tr></thead><tbody>
+{% for subform in formset %}<tr class="coverage-row">{% for hidden in subform.hidden_fields %}{{ hidden }}{% endfor %}<td>{{ subform.clause }}{{ subform.clause.errors }}</td><td>{{ subform.annexure_line }}{{ subform.annexure_line.errors }}</td><td>{{ subform.offered_quantity }}{{ subform.offered_quantity.errors }}</td><td>{{ subform.heat_numbers }}</td><td>{{ subform.serial_numbers }}</td><td>{{ subform.DELETE }}</td></tr>{% endfor %}
+</tbody></table></div>
+<button type="button" id="add-row" class="secondary">Add coverage row</button>
+<button type="submit">Validate previous activities and create NOI</button>
+</form>
+</div>
+<template id="empty-row"><tr class="coverage-row"><td>{{ formset.empty_form.clause }}</td><td>{{ formset.empty_form.annexure_line }}</td><td>{{ formset.empty_form.offered_quantity }}</td><td>{{ formset.empty_form.heat_numbers }}</td><td>{{ formset.empty_form.serial_numbers }}</td><td>{{ formset.empty_form.DELETE }}</td></tr></template>
+{% endblock %}
+{% block scripts %}
+<script>
+const addButton = document.getElementById('add-row');
+const total = document.getElementById('id_coverage-TOTAL_FORMS');
+addButton.addEventListener('click', () => {
+  const index = Number(total.value);
+  const html = document.getElementById('empty-row').innerHTML.replaceAll('__prefix__', index);
+  document.querySelector('#coverage-table tbody').insertAdjacentHTML('beforeend', html);
+  total.value = index + 1;
+});
+</script>
+{% endblock %}

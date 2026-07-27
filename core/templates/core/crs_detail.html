@@ -1,0 +1,487 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+{{ crs.crs_reference|default:"CRS" }} | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="breadcrumb">
+
+    <a href="{% url 'core:dashboard' %}">
+        Dashboard
+    </a>
+
+    <span>/</span>
+
+    <a
+        href="{% url 'core:sales_order_vdrl' document.vdrl.sales_order.pk %}"
+    >
+        {{ document.vdrl.sales_order.sales_order_number }}
+    </a>
+
+    <span>/</span>
+
+    <a
+        href="{% url 'core:document_detail' document.pk %}"
+    >
+        {{ document.document_title }}
+    </a>
+
+    <span>/</span>
+
+    <span>
+        {{ crs.crs_reference|default:"CRS" }}
+    </span>
+
+</div>
+
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            {{ crs.crs_reference|default:"Comments Resolution Sheet" }}
+        </h1>
+
+        <p class="muted">
+
+            {{ document.document_title }}
+
+            · Cycle {{ crs.cycle_number }}
+
+            · Rev. {{ crs.document_revision }}
+
+        </p>
+
+    </div>
+
+
+    <div class="header-actions">
+
+        {% if can_manage_crs %}
+
+    <div class="header-actions">
+
+        <a
+            href="{% url 'core:crs_edit' crs.pk %}"
+            class="button"
+        >
+            Edit CRS
+        </a>
+
+        <a
+            href="{% url 'core:crs_comment_create' crs.pk %}"
+            class="button button-primary"
+        >
+            Add Comment
+        </a>
+
+    </div>
+
+{% endif %}
+    
+    </div>
+
+</div>
+
+
+<div class="document-summary-grid">
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Status
+        </span>
+
+        <strong>
+            {{ crs.get_status_display }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Expected Comments
+        </span>
+
+        <strong>
+            {{ crs.expected_comment_count }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Comments Entered
+        </span>
+
+        <strong>
+            {{ crs.total_comments }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Open Comments
+        </span>
+
+        <strong>
+            {{ crs.open_comments }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Closed Comments
+        </span>
+
+        <strong>
+            {{ crs.closed_comments }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Overdue Comments
+        </span>
+
+        <strong>
+            {{ crs.overdue_comments }}
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            Progress
+        </span>
+
+        <strong>
+            {{ crs.progress_percent }}%
+        </strong>
+
+    </div>
+
+
+    <div class="detail-card">
+
+        <span class="detail-label">
+            CRS Aging
+        </span>
+
+        <strong>
+            {{ crs.aging_days }}
+            days
+        </strong>
+
+    </div>
+
+</div>
+
+
+<section class="panel">
+
+    <div class="info-grid">
+
+        <div>
+
+            <span class="detail-label">
+                Target Completion
+            </span>
+
+            <strong>
+                {{ crs.target_completion_date|default:"-" }}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                Prepared By
+            </span>
+
+            <strong>
+
+                {% if crs.prepared_by %}
+
+                    {{ crs.prepared_by.get_full_name|default:crs.prepared_by.username }}
+
+                {% else %}
+
+                    -
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                Reviewed By
+            </span>
+
+            <strong>
+
+                {% if crs.reviewed_by %}
+
+                    {{ crs.reviewed_by.get_full_name|default:crs.reviewed_by.username }}
+
+                {% else %}
+
+                    -
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            <span class="detail-label">
+                CRS File
+            </span>
+
+            {% if crs.crs_file %}
+
+                <a
+                    href="{% url 'core:document_file_open' crs.crs_file.pk %}"
+                    class="button button-small button-primary"
+                    target="_blank"
+                >
+                    Open CRS File
+                </a>
+
+            {% else %}
+
+                <strong>
+                    Not linked
+                </strong>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <h2>
+            Customer Comments
+        </h2>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table class="crs-table">
+
+            <thead>
+
+                <tr>
+                    <th>Comment No.</th>
+                    <th>Page / Clause</th>
+                    <th>Customer Comment</th>
+                    <th>Assigned To</th>
+                    <th>Decision</th>
+                    <th>Response</th>
+                    <th>Document Update</th>
+                    <th>Status</th>
+                    <th>Target Date</th>
+                    <th>Aging</th>
+                    <th>Customer Result</th>
+                    <th></th>
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for comment in comments %}
+
+                    <tr
+                        {% if comment.is_overdue %}
+                            class="row-overdue"
+                        {% endif %}
+                    >
+
+                        <td>
+
+                            <strong>
+                                {{ comment.comment_number }}
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+
+                            {{ comment.page_reference|default:"-" }}
+
+                            {% if comment.clause_reference %}
+
+                                <div class="small-muted">
+                                    {{ comment.clause_reference }}
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td class="comment-text-cell">
+
+                            {{ comment.customer_comment }}
+
+                        </td>
+
+
+                        <td>
+
+                            {% if comment.assigned_person %}
+
+                                {{ comment.assigned_person.get_full_name|default:comment.assigned_person.username }}
+
+                            {% elif comment.assigned_department %}
+
+                                {{ comment.assigned_department.name }}
+
+                            {% else %}
+
+                                -
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ comment.get_decision_display }}
+                        </td>
+
+
+                        <td class="comment-text-cell">
+
+                            {{ comment.supplier_response|default:"-" }}
+
+                        </td>
+
+
+                        <td>
+                            {{ comment.get_document_update_status_display }}
+                        </td>
+
+
+                        <td>
+
+                            <span
+                                class="
+                                    status-badge
+                                    status-{{ comment.status|lower }}
+                                "
+                            >
+                                {{ comment.get_status_display }}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+                            {{ comment.target_response_date|default:"-" }}
+                        </td>
+
+
+                        <td>
+
+                            {{ comment.aging_days }}
+                            days
+
+                            {% if comment.is_overdue %}
+
+                                <div class="warning-text">
+                                    Overdue
+                                </div>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+                            {{ comment.get_customer_disposition_display }}
+                        </td>
+
+
+                        <td>
+
+                            {% if can_manage_crs %}
+
+    <a
+        href="{% url 'core:crs_comment_edit' comment.pk %}"
+        class="button button-small"
+    >
+        Edit
+    </a>
+
+{% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+
+                        <td
+                            colspan="12"
+                            class="empty-state"
+                        >
+                            No customer comments have been entered.
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}

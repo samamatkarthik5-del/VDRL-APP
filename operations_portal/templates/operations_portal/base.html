@@ -1,0 +1,27 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Quality Operations{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'operations_portal/portal.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">MT Quality Operations</a>
+    <div class="topbar-actions">
+        <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+        {% if request.user.is_staff %}<a href="/admin/">Admin</a>{% endif %}
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="link-button">Logout</button></form>
+    </div>
+</header>
+<main class="page-shell">
+    {% if messages %}
+        {% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

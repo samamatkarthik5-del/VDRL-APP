@@ -1,0 +1,48 @@
+{% extends 'itp/base.html' %}
+{% block title %}{{ document }}{% endblock %}
+{% block content %}
+<div class="heading-actions">
+  <div><h1>{{ document.document_number }} Rev.{{ document.revision }}</h1><p>{{ document.title }}</p></div>
+  <div>
+    <a class="button secondary" href="{{ document.original_file.url }}">Original file</a>
+    {% if perms.itp.activate_itp and document.status != 'ACTIVE' %}
+    <form method="post" action="{% url 'itp:activate_itp' document.pk %}" class="inline">{% csrf_token %}<button type="submit">Activate revision</button></form>
+    {% endif %}
+  </div>
+</div>
+<div class="grid four">
+  <div class="card"><strong>Status</strong><br>{{ document.get_status_display }}</div>
+  <div class="card"><strong>Source</strong><br>{{ document.get_source_format_display }}</div>
+  <div class="card"><strong>Clauses</strong><br>{{ document.extraction_summary.clauses|default:0 }}</div>
+  <div class="card"><strong>Hold Points</strong><br>{{ document.extraction_summary.hold_points|default:0 }}</div>
+</div>
+
+{% if issues %}
+<h2>Import issues</h2>
+<table><thead><tr><th>Severity</th><th>Location</th><th>Message</th><th>Resolved</th></tr></thead><tbody>
+{% for issue in issues %}<tr><td>{{ issue.severity }}</td><td>{{ issue.source_location }}</td><td>{{ issue.message }}</td><td>{{ issue.is_resolved|yesno:'Yes,No' }}</td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
+
+<h2>Extracted ITP clauses - QC review</h2>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Seq.</th><th>Clause</th><th>Activity</th><th>Reference</th><th>Characteristics / extent</th><th>Acceptance criteria</th><th>Verifying document</th><th>Intervention points</th><th></th></tr></thead>
+<tbody>
+{% for clause in clauses %}
+<tr class="{% if clause.is_hold_point %}hold-row{% endif %}">
+  <td>{{ clause.sequence_order }}</td>
+  <td><strong>{{ clause.clause_code }}</strong>{% if clause.is_hold_point %}<span class="hold-badge">HOLD</span>{% endif %}</td>
+  <td>{{ clause.activity|linebreaksbr }}</td>
+  <td>{{ clause.reference_document|linebreaksbr }}</td>
+  <td>{{ clause.characteristics|linebreaksbr }}</td>
+  <td>{{ clause.acceptance_criteria|linebreaksbr }}</td>
+  <td>{{ clause.verifying_document|linebreaksbr }}</td>
+  <td>{% for item in clause.interventions.all %}<div><strong>{{ item.stakeholder.name }}:</strong> {{ item.point_code }} {{ item.sampling_text }}</div>{% empty %}-{% endfor %}</td>
+  <td><a href="{% url 'itp:edit_clause' clause.pk %}">Edit</a></td>
+</tr>
+{% empty %}<tr><td colspan="9">No clauses extracted.</td></tr>{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

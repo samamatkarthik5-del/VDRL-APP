@@ -1,0 +1,315 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+Import Calibration Excel
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .import-page {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .import-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .import-header h1 {
+        margin: 0 0 8px;
+    }
+
+    .import-header p {
+        margin: 0;
+        color: #667085;
+    }
+
+    .import-card {
+        margin-bottom: 24px;
+        padding: 28px;
+        border: 1px solid #e4e7ec;
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 5px 18px rgba(16, 24, 40, 0.06);
+    }
+
+    .import-card h2 {
+        margin-top: 0;
+    }
+
+    .import-form p {
+        margin-bottom: 20px;
+    }
+
+    .import-form label {
+        display: block;
+        margin-bottom: 7px;
+        font-weight: 700;
+    }
+
+    .import-form input[type="file"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #f9fafb;
+    }
+
+    .import-form input[type="checkbox"] {
+        margin-right: 8px;
+    }
+
+    .helptext {
+        display: block;
+        margin-top: 6px;
+        color: #667085;
+        font-size: 13px;
+    }
+
+    .errorlist {
+        padding: 12px 16px 12px 35px;
+        border-radius: 8px;
+        background: #fef3f2;
+        color: #b42318;
+    }
+
+    .import-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .import-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: #155eef;
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .import-button:hover {
+        background: #004eeb;
+        color: #ffffff;
+    }
+
+    .import-button-secondary {
+        background: #344054;
+    }
+
+    .result-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .result-table th,
+    .result-table td {
+        padding: 12px;
+        border-bottom: 1px solid #eaecf0;
+        text-align: left;
+    }
+
+    .result-table th {
+        width: 60%;
+        background: #f9fafb;
+    }
+
+    .import-error {
+        margin-bottom: 8px;
+        color: #b42318;
+    }
+
+    .import-instructions {
+        margin: 0;
+        padding-left: 22px;
+        color: #475467;
+        line-height: 1.8;
+    }
+</style>
+
+<div class="import-page">
+
+    <div class="import-header">
+
+        <div>
+            <h1>Import Calibration Data</h1>
+
+            <p>
+                Import instruments and calibration history from an Excel workbook.
+            </p>
+        </div>
+
+        <a
+            href="{% url 'calibration:dashboard' %}"
+            class="import-button import-button-secondary"
+        >
+            Back to Calibration
+        </a>
+
+    </div>
+
+
+    <div class="import-card">
+
+        <h2>Excel Template</h2>
+
+        <p>
+            Download the approved template, enter the instrument and
+            calibration details, and upload the completed workbook below.
+        </p>
+
+        <a
+            href="{% url 'calibration:download_excel_template' %}"
+            class="import-button"
+        >
+            Download Excel Template
+        </a>
+
+    </div>
+
+
+    <div class="import-card">
+
+        <h2>Upload Completed Workbook</h2>
+
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            class="import-form"
+        >
+
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <div class="import-actions">
+
+                <button
+                    type="submit"
+                    class="import-button"
+                >
+                    Import Excel
+                </button>
+
+                <a
+                    href="{% url 'calibration:dashboard' %}"
+                    class="import-button import-button-secondary"
+                >
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <div class="import-card">
+
+        <h2>Workbook Requirements</h2>
+
+        <ol class="import-instructions">
+
+            <li>
+                Do not change the worksheet names.
+            </li>
+
+            <li>
+                Instrument master data must be entered in the
+                <strong>Instruments</strong> sheet.
+            </li>
+
+            <li>
+                Previous calibration transactions may be entered in the
+                <strong>Calibration History</strong> sheet.
+            </li>
+
+            <li>
+                Use DD-MM-YYYY or YYYY-MM-DD for date fields.
+            </li>
+
+            <li>
+                Blank cells will not erase existing instrument information.
+            </li>
+
+            <li>
+                Calibration certificate PDF files must be uploaded separately.
+            </li>
+
+        </ol>
+
+    </div>
+
+
+    {% if result %}
+
+        <div class="import-card">
+
+            <h2>Import Result</h2>
+
+            <table class="result-table">
+
+                <tbody>
+
+                    <tr>
+                        <th>Instruments Created</th>
+                        <td>{{ result.instruments_created }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Instruments Updated</th>
+                        <td>{{ result.instruments_updated }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Calibration History Created</th>
+                        <td>{{ result.history_created }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Calibration History Updated</th>
+                        <td>{{ result.history_updated }}</td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        {% if result.errors %}
+
+            <div class="import-card">
+
+                <h2>Rows Requiring Correction</h2>
+
+                {% for error in result.errors %}
+
+                    <div class="import-error">
+                        {{ error }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+    {% endif %}
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'itp/base.html' %}
+{% block title %}ITP Dashboard{% endblock %}
+{% block content %}
+<h1>ITP and NOI Dashboard</h1>
+<div class="grid four">
+  <div class="card"><div class="kpi">{{ itps|length }}</div><div>Recent ITP revisions</div></div>
+  <div class="card"><div class="kpi">{{ annexures|length }}</div><div>Recent annexures</div></div>
+  <div class="card"><div class="kpi">{{ nois|length }}</div><div>Recent NOIs</div></div>
+  <div class="card critical"><div class="kpi">{{ alerts|length }}</div><div>Open alerts</div></div>
+</div>
+
+<h2>Open workflow alerts</h2>
+<table>
+  <thead><tr><th>Severity</th><th>Alert</th><th>NOI</th><th>Created</th></tr></thead>
+  <tbody>
+  {% for alert in alerts %}
+    <tr class="severity-{{ alert.severity|lower }}">
+      <td>{{ alert.get_severity_display }}</td>
+      <td>{{ alert.title }}<br><small>{{ alert.message }}</small></td>
+      <td>{% if alert.noi %}<a href="{% url 'itp:noi_detail' alert.noi.pk %}">{{ alert.noi.number }}</a>{% endif %}</td>
+      <td>{{ alert.created_at|date:'d-M-Y H:i' }}</td>
+    </tr>
+  {% empty %}<tr><td colspan="4">No open alerts.</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<div class="grid two">
+<section>
+<h2>Recent ITP revisions</h2>
+<table><thead><tr><th>Document</th><th>Revision</th><th>Status</th></tr></thead><tbody>
+{% for item in itps %}<tr><td><a href="{% url 'itp:itp_detail' item.pk %}">{{ item.document_number }}</a></td><td>{{ item.revision }}</td><td><span class="status">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="3">No ITP uploaded.</td></tr>{% endfor %}
+</tbody></table>
+</section>
+<section>
+<h2>Recent annexures</h2>
+<table><thead><tr><th>Document</th><th>Revision</th><th>Status</th></tr></thead><tbody>
+{% for item in annexures %}<tr><td><a href="{% url 'itp:annexure_detail' item.pk %}">{{ item.document_number }}</a></td><td>{{ item.revision }}</td><td><span class="status">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="3">No annexure uploaded.</td></tr>{% endfor %}
+</tbody></table>
+</section>
+</div>
+
+<h2>Recent NOIs</h2>
+<table><thead><tr><th>NOI</th><th>Scheduled end</th><th>Responsible</th><th>Status</th><th>Completion</th></tr></thead><tbody>
+{% for noi in nois %}<tr><td><a href="{% url 'itp:noi_detail' noi.pk %}">{{ noi.number }}</a></td><td>{{ noi.scheduled_end|date:'d-M-Y H:i' }}</td><td>{{ noi.responsible_user }}</td><td>{{ noi.get_status_display }}</td><td>{{ noi.get_completion_status_display }}</td></tr>{% empty %}<tr><td colspan="5">No NOIs created.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

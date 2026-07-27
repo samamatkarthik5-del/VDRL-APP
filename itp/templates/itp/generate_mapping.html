@@ -1,0 +1,13 @@
+{% extends 'itp/base.html' %}
+{% block title %}Generate Mapping{% endblock %}
+{% block content %}
+<h1>Generate ITP Applicability Matrix</h1>
+<div class="card narrow">
+<form method="post">{% csrf_token %}
+<div class="field"><label>Active ITP</label><select name="itp" required><option value="">Select</option>{% for item in itps %}<option value="{{ item.pk }}">{{ item }}</option>{% endfor %}</select></div>
+<div class="field"><label>Active annexure</label><select name="annexure" required><option value="">Select</option>{% for item in annexures %}<option value="{{ item.pk }}">{{ item }}</option>{% endfor %}</select></div>
+<p class="warning-box">The system creates suggestions only. QC must approve each applicable clause-to-line mapping before an NOI can be raised.</p>
+<button type="submit">Generate suggestions</button>
+</form>
+</div>
+{% endblock %}

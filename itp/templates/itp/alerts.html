@@ -1,0 +1,8 @@
+{% extends 'itp/base.html' %}
+{% block title %}Workflow Alerts{% endblock %}
+{% block content %}
+<h1>Workflow Alerts</h1>
+<table><thead><tr><th>Status</th><th>Severity</th><th>Alert</th><th>NOI</th><th>Created</th><th></th></tr></thead><tbody>
+{% for alert in alerts %}<tr class="severity-{{ alert.severity|lower }}"><td>{{ alert.is_resolved|yesno:'Resolved,Open' }}</td><td>{{ alert.get_severity_display }}</td><td><strong>{{ alert.title }}</strong><br>{{ alert.message }}</td><td>{% if alert.noi %}<a href="{% url 'itp:noi_detail' alert.noi.pk %}">{{ alert.noi.number }}</a>{% endif %}</td><td>{{ alert.created_at|date:'d-M-Y H:i' }}</td><td>{% if not alert.is_resolved %}<form method="post" action="{% url 'itp:resolve_alert' alert.pk %}">{% csrf_token %}<button type="submit" class="secondary">Resolve</button></form>{% endif %}</td></tr>{% empty %}<tr><td colspan="6">No alerts.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

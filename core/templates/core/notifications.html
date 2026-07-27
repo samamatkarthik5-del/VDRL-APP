@@ -1,0 +1,251 @@
+{% extends "core/base.html" %}
+
+
+{% block title %}
+Notifications | VDRL
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-header">
+
+    <div>
+
+        <h1>
+            Notifications
+        </h1>
+
+        <p class="muted">
+            {{ unread_count }}
+            unread notification(s)
+        </p>
+
+    </div>
+
+
+    <div class="header-actions">
+
+        {% if unread_count %}
+
+            <form
+                method="post"
+                action="{% url 'core:notification_mark_all_read' %}"
+            >
+
+                {% csrf_token %}
+
+                <button
+                    type="submit"
+                    class="button"
+                >
+                    Mark All Read
+                </button>
+
+            </form>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<div class="notification-filter-bar">
+
+    <a
+        href="{% url 'core:notification_list' %}"
+        class="
+            button
+            {% if selected_filter == 'all' %}
+                button-primary
+            {% endif %}
+        "
+    >
+        All
+    </a>
+
+    <a
+        href="{% url 'core:notification_list' %}?filter=unread"
+        class="
+            button
+            {% if selected_filter == 'unread' %}
+                button-primary
+            {% endif %}
+        "
+    >
+        Unread
+    </a>
+
+    <a
+        href="{% url 'core:notification_list' %}?filter=read"
+        class="
+            button
+            {% if selected_filter == 'read' %}
+                button-primary
+            {% endif %}
+        "
+    >
+        Read
+    </a>
+
+</div>
+
+
+<section class="notification-list">
+
+    {% for notification in page_obj %}
+
+        <article
+            class="
+                notification-card
+                priority-{{ notification.priority|lower }}
+
+                {% if not notification.is_read %}
+                    notification-unread
+                {% endif %}
+            "
+        >
+
+            <div class="notification-card-main">
+
+                <div class="notification-card-header">
+
+                    <span class="notification-category">
+                        {{ notification.get_category_display }}
+                    </span>
+
+                    <span class="notification-time">
+                        {{ notification.created_at|date:"d-M-Y H:i" }}
+                    </span>
+
+                </div>
+
+
+                <h2>
+                    {{ notification.title }}
+                </h2>
+
+
+                {% if notification.message %}
+
+                    <p>
+                        {{ notification.message }}
+                    </p>
+
+                {% endif %}
+
+
+                <div class="notification-meta">
+
+                    <span>
+                        Priority:
+                        {{ notification.get_priority_display }}
+                    </span>
+
+                    {% if notification.created_by %}
+
+                        <span>
+                            From:
+
+                            {{ notification.created_by.get_full_name|default:notification.created_by.username }}
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="notification-card-action">
+
+                {% if not notification.is_read %}
+
+                    <form
+                        method="post"
+                        action="{% url 'core:notification_mark_read' notification.pk %}"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="button button-primary"
+                        >
+                            Open
+                        </button>
+
+                    </form>
+
+                {% elif notification.url %}
+
+                    <a
+                        href="{{ notification.url }}"
+                        class="button"
+                    >
+                        Open
+                    </a>
+
+                {% endif %}
+
+            </div>
+
+        </article>
+
+    {% empty %}
+
+        <section class="panel empty-state">
+
+            <h2>
+                No notifications
+            </h2>
+
+            <p>
+                There are no notifications matching
+                the selected filter.
+            </p>
+
+        </section>
+
+    {% endfor %}
+
+</section>
+
+
+{% if page_obj.has_other_pages %}
+
+    <div class="pagination">
+
+        {% if page_obj.has_previous %}
+
+            <a
+                href="?filter={{ selected_filter }}&page={{ page_obj.previous_page_number }}"
+                class="button"
+            >
+                Previous
+            </a>
+
+        {% endif %}
+
+        <span>
+            Page {{ page_obj.number }}
+            of {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+
+            <a
+                href="?filter={{ selected_filter }}&page={{ page_obj.next_page_number }}"
+                class="button"
+            >
+                Next
+            </a>
+
+        {% endif %}
+
+    </div>
+
+{% endif %}
+
+{% endblock %}
