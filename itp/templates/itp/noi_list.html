@@ -1,6 +1,6 @@
 {% extends 'itp/base.html' %}
 {% block title %}NOIs{% endblock %}
-{% block content %}
+{% block itp_body %}
 <div class="heading-actions"><h1>Notices of Inspection</h1><a class="button" href="{% url 'itp:create_noi' %}">Raise NOI</a></div>
 <table><thead><tr><th>NOI</th><th>ITP</th><th>Scheduled start</th><th>Scheduled end</th><th>Responsible</th><th>Status</th><th>Completion</th></tr></thead><tbody>
 {% for noi in nois %}<tr><td><a href="{% url 'itp:noi_detail' noi.pk %}">{{ noi.number }}</a></td><td>{{ noi.itp.document_number }} Rev.{{ noi.itp.revision }}</td><td>{{ noi.scheduled_start|date:'d-M-Y H:i' }}</td><td>{{ noi.scheduled_end|date:'d-M-Y H:i' }}</td><td>{{ noi.responsible_user }}</td><td>{{ noi.get_status_display }}</td><td>{{ noi.get_completion_status_display }}</td></tr>{% empty %}<tr><td colspan="7">No NOIs found.</td></tr>{% endfor %}

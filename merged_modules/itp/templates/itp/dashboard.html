@@ -1,6 +1,6 @@
 {% extends 'itp/base.html' %}
 {% block title %}ITP Dashboard{% endblock %}
-{% block content %}
+{% block itp_body %}
 <h1>ITP and NOI Dashboard</h1>
 <div class="grid four">
   <div class="card"><div class="kpi">{{ itps|length }}</div><div>Recent ITP revisions</div></div>
@@ -28,13 +28,13 @@
 <section>
 <h2>Recent ITP revisions</h2>
 <table><thead><tr><th>Document</th><th>Revision</th><th>Status</th></tr></thead><tbody>
-{% for item in itps %}<tr><td><a href="{% url 'itp:itp_detail' item.pk %}">{{ item.document_number }}</a></td><td>{{ item.revision }}</td><td><span class="status">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="3">No ITP uploaded.</td></tr>{% endfor %}
+{% for item in itps %}<tr><td><a href="{% url 'itp:itp_detail' item.pk %}">{{ item.document_number }}</a></td><td>{{ item.revision }}</td><td><span class="status status-{{ item.status|lower }}">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="3">No ITP uploaded.</td></tr>{% endfor %}
 </tbody></table>
 </section>
 <section>
 <h2>Recent annexures</h2>
 <table><thead><tr><th>Document</th><th>Revision</th><th>Status</th></tr></thead><tbody>
-{% for item in annexures %}<tr><td><a href="{% url 'itp:annexure_detail' item.pk %}">{{ item.document_number }}</a></td><td>{{ item.revision }}</td><td><span class="status">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="3">No annexure uploaded.</td></tr>{% endfor %}
+{% for item in annexures %}<tr><td><a href="{% url 'itp:annexure_detail' item.pk %}">{{ item.document_number }}</a></td><td>{{ item.revision }}</td><td><span class="status status-{{ item.status|lower }}">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="3">No annexure uploaded.</td></tr>{% endfor %}
 </tbody></table>
 </section>
 </div>

@@ -1,17 +1,18 @@
 {% extends 'itp/base.html' %}
 {% block title %}{{ document }}{% endblock %}
-{% block content %}
+{% block itp_body %}
 <div class="heading-actions">
   <div><h1>{{ document.document_number }} Rev.{{ document.revision }}</h1><p>{{ document.title }}</p></div>
   <div>
     <a class="button secondary" href="{{ document.original_file.url }}">Original file</a>
     {% if perms.itp.activate_itp and document.status != 'ACTIVE' %}
+    <form method="post" action="{% url 'itp:request_itp_correction' document.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="reason" class="js-reason-input"><button type="button" class="danger" onclick="itpAskReason(this)">Request correction</button></form>
     <form method="post" action="{% url 'itp:activate_itp' document.pk %}" class="inline">{% csrf_token %}<button type="submit">Activate revision</button></form>
     {% endif %}
   </div>
 </div>
 <div class="grid four">
-  <div class="card"><strong>Status</strong><br>{{ document.get_status_display }}</div>
+  <div class="card"><strong>Status</strong><br><span class="status status-{{ document.status|lower }}">{{ document.get_status_display }}</span></div>
   <div class="card"><strong>Source</strong><br>{{ document.get_source_format_display }}</div>
   <div class="card"><strong>Clauses</strong><br>{{ document.extraction_summary.clauses|default:0 }}</div>
   <div class="card"><strong>Hold Points</strong><br>{{ document.extraction_summary.hold_points|default:0 }}</div>
@@ -45,4 +46,17 @@
 </tbody>
 </table>
 </div>
+
+{% include "itp/_comments.html" %}
+{% endblock %}
+{% block scripts %}
+<script>
+function itpAskReason(btn){
+  var reason = prompt("What needs to be corrected?");
+  if(reason === null || reason.trim() === ""){ return; }
+  var form = btn.closest("form");
+  form.querySelector(".js-reason-input").value = reason;
+  form.submit();
+}
+</script>
 {% endblock %}

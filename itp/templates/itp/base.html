@@ -1,35 +1,15 @@
+{% extends "operations_portal/base.html" %}
 {% load static %}
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}ITP & NOI{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'itp/itp.css' %}">
-</head>
-<body>
-<header class="topbar">
-  <div class="brand"><a href="{% url 'itp:dashboard' %}">Send for TPI NOI</a></div>
-  <nav>
-    <a href="/">Applications</a>
-    <a href="{% url 'itp:upload_itp' %}">Upload ITP</a>
-    <a href="{% url 'itp:upload_annexure' %}">Upload Annexure</a>
-    <a href="{% url 'itp:generate_mapping' %}">Mapping</a>
+{% block extra_css %}<link rel="stylesheet" href="{% static 'itp/itp.css' %}">{% endblock %}
+{% block content %}
+<nav class="subnav">
+    <a href="{% url 'itp:dashboard' %}">Dashboard</a>
+    {% if perms.itp.add_itpdocument %}<a href="{% url 'itp:upload_itp' %}">Upload ITP</a>{% endif %}
+    {% if perms.itp.add_itpannexure %}<a href="{% url 'itp:upload_annexure' %}">Upload annexure</a>{% endif %}
+    {% if perms.itp.add_itplineclausemapping %}<a href="{% url 'itp:generate_mapping' %}">Mapping</a>{% endif %}
     <a href="{% url 'itp:noi_list' %}">NOIs</a>
-    <a href="{% url 'itp:create_noi' %}">Raise NOI</a>
+    {% if perms.itp.add_noticeofinspection %}<a href="{% url 'itp:create_noi' %}">Raise NOI</a>{% endif %}
     <a href="{% url 'itp:alerts' %}">Alerts</a>
-    {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
-    <form method="post" action="{% url 'logout' %}" style="display:inline">{% csrf_token %}<button type="submit" class="nav-button">Logout</button></form>
-  </nav>
-</header>
-<main class="container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="message {{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-  {% block content %}{% endblock %}
-</main>
-{% block scripts %}{% endblock %}
-</body>
-</html>
+</nav>
+{% block itp_body %}{% endblock %}
+{% endblock %}

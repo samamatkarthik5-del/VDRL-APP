@@ -1,3 +1,48 @@
-:root{--primary:#174a7e;--primary-dark:#0f355b;--border:#d7dee7;--bg:#f5f7fa;--danger:#b42318;--warning:#b54708;--success:#067647;--hold:#fff1c2}*{box-sizing:border-box}body{margin:0;font:14px/1.45 Arial,Helvetica,sans-serif;background:var(--bg);color:#17212b}.topbar{display:flex;justify-content:space-between;align-items:center;background:var(--primary-dark);padding:14px 24px;color:#fff}.topbar a{color:#fff;text-decoration:none;margin-right:16px}.brand{font-size:20px;font-weight:700}.container{max-width:1600px;margin:24px auto;padding:0 20px}h1,h2{color:#17324d}h2{margin-top:28px}.grid{display:grid;gap:16px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}.card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}.card.narrow{max-width:760px}.card.critical{border-left:5px solid var(--danger)}.kpi{font-size:30px;font-weight:700;color:var(--primary)}table{width:100%;border-collapse:collapse;background:#fff}th,td{border:1px solid var(--border);padding:9px;vertical-align:top;text-align:left}th{background:#eaf0f6;position:sticky;top:0;z-index:1}.table-scroll{overflow:auto;max-height:70vh}.hold-row{background:var(--hold)}.hold-badge{display:inline-block;margin-left:6px;background:#9a6700;color:#fff;border-radius:4px;padding:2px 5px;font-size:11px;font-weight:700}.field{margin-bottom:14px}.field label{display:block;font-weight:700;margin-bottom:5px}input,select,textarea{width:100%;padding:8px;border:1px solid #aeb8c4;border-radius:4px;background:#fff}input[type=checkbox],input[type=radio]{width:auto}button,.button{display:inline-block;border:0;border-radius:5px;background:var(--primary);color:#fff;padding:9px 14px;text-decoration:none;cursor:pointer;margin:4px 4px 4px 0}.secondary{background:#64748b}.danger{background:var(--danger)}.inline{display:inline}.heading-actions{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.message,.alert{padding:12px 14px;border-radius:5px;margin:10px 0;background:#e8f1fb;border-left:5px solid var(--primary)}.message.error,.severity-critical{background:#fee4e2;border-left-color:var(--danger)}.message.success{background:#dcfae6;border-left-color:var(--success)}.severity-warning{background:#fff4e5;border-left-color:var(--warning)}.severity-info{background:#e8f1fb}.error{color:var(--danger);font-weight:700}.warning-box{background:#fff4e5;border-left:4px solid var(--warning);padding:12px}.status{display:inline-block;padding:2px 7px;border-radius:10px;background:#edf2f7;font-size:12px}.previous-state{padding:6px;margin-bottom:5px;border-left:3px solid #667085;background:#f8fafc}.previous-state.blocked{border-left-color:var(--danger);background:#fee4e2}.filters,.actionbar{display:flex;gap:8px;align-items:center;margin:12px 0}.filters select{max-width:420px}@media(max-width:900px){.grid.two,.grid.four{grid-template-columns:1fr}.topbar{display:block}.topbar nav{margin-top:10px}.heading-actions{display:block}}
+/* ITP & NOI module — extends the shared operations_portal look (portal.css).
+   Only ITP-specific additions live here; colors reuse portal.css's
+   --accent/--danger/--warn/--line tokens so the module matches the shell. */
 
-.nav-button{background:none;border:0;color:white;cursor:pointer;font:inherit;padding:0 6px;}
+.subnav{display:flex;gap:4px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;margin-bottom:22px}
+.subnav a{color:var(--muted);text-decoration:none;font-weight:650;font-size:13.5px;padding:8px 14px;border-radius:8px;transition:.15s ease}
+.subnav a:hover{background:var(--bg);color:var(--ink)}
+
+.grid{display:grid;gap:16px}
+.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+.card.narrow{max-width:760px}
+.card.critical{border-left:4px solid var(--danger)}
+.kpi{font-size:28px;font-weight:800;color:var(--accent)}
+
+.table-scroll{overflow:auto;max-height:70vh;border-radius:10px}
+table th{position:sticky;top:0;z-index:1}
+.hold-row{background:#fff8e1}
+.hold-badge{display:inline-block;margin-left:6px;background:var(--warn);color:#fff;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;letter-spacing:.3px}
+
+.severity-critical{background:#fee4e2;border-left:4px solid var(--danger)}
+.severity-warning{background:#fff4e5;border-left:4px solid var(--warn)}
+.severity-info{background:#eaf0ff;border-left:4px solid var(--accent)}
+.alert{padding:12px 14px;border-radius:8px;margin:10px 0}
+
+.previous-state{padding:8px 10px;margin-bottom:6px;border-left:3px solid #98a2b3;background:var(--bg);border-radius:0 8px 8px 0;font-size:13px}
+.previous-state.blocked{border-left-color:var(--danger);background:#fee4e2}
+
+.filters,.actionbar{display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap}
+.filters select{max-width:420px}
+.heading-actions{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.warning-box{background:#fff4e5;border-left:4px solid var(--warn);padding:12px;border-radius:0 8px 8px 0}
+.inline{display:inline}
+
+/* Comment thread, shared by ITP / annexure / NOI detail pages */
+.comment-thread{margin-top:8px}
+.comment{border-bottom:1px solid var(--line);padding:12px 0;font-size:13.5px}
+.comment:last-child{border-bottom:0}
+.comment-meta{color:var(--muted);font-size:12px;margin-bottom:4px}
+.comment-body{white-space:pre-wrap}
+.comment.correction .comment-body{color:var(--danger)}
+.comment-form textarea{width:100%}
+
+@media(max-width:900px){
+  .grid.two,.grid.four{grid-template-columns:1fr}
+  .heading-actions{display:block}
+}

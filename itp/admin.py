@@ -9,6 +9,7 @@ from .models import (
     ITPClause,
     ITPClauseDependency,
     ITPClauseIntervention,
+    ITPComment,
     ITPDocument,
     ITPLineClauseMapping,
     ITPStakeholder,
@@ -229,3 +230,10 @@ admin.site.register(NOICoverage)
 admin.site.register(NOICompletionTask)
 admin.site.register(NOINumberSequence)
 admin.site.register(AuditLog)
+
+
+@admin.register(ITPComment)
+class ITPCommentAdmin(admin.ModelAdmin):
+    list_display = ("content_object", "kind", "author", "created_at")
+    list_filter = ("kind",)
+    search_fields = ("body",)

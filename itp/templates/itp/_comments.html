@@ -1,0 +1,15 @@
+{% load static %}
+<h2>Comments</h2>
+<div class="comment-thread panel">
+    {% for c in comments %}
+    <div class="comment{% if c.kind == 'CORRECTION_REQUEST' %} correction{% endif %}">
+        <div class="comment-meta">{{ c.author.get_full_name|default:c.author.get_username }} &middot; {{ c.created_at|date:"d-M-Y H:i" }}{% if c.kind == 'CORRECTION_REQUEST' %} &middot; <strong>Correction requested</strong>{% endif %}</div>
+        <div class="comment-body">{{ c.body }}</div>
+    </div>
+    {% empty %}<p class="helptext">No comments yet.</p>{% endfor %}
+</div>
+<form method="post" action="{% url comment_url_name obj_pk %}" class="comment-form panel" style="margin-top:12px">
+    {% csrf_token %}
+    {{ comment_form.body }}
+    <p style="margin-top:10px"><button class="button secondary" type="submit">Add comment</button></p>
+</form>

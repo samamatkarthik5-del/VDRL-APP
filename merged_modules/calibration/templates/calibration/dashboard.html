@@ -11,6 +11,6 @@
 <div class="page-header"><h2>Due and overdue instruments</h2><div><a class="button secondary" href="{% url 'calibration:instrument_list' %}">Instrument register</a> <a class="button secondary" href="{% url 'calibration:master_list' %}">Audit master list</a></div></div>
 <div class="panel" style="overflow:auto">
 <table><thead><tr><th>Asset No.</th><th>Description</th><th>Custodian</th><th>Latest calibration</th><th>Next due</th><th>Status</th></tr></thead><tbody>
-{% for item in due_instruments %}<tr><td><a href="{% url 'calibration:instrument_detail' item.pk %}">{{ item.asset_number }}</a></td><td>{{ item.description }}</td><td>{{ item.custodian|default:"—" }}</td><td>{{ item.latest_calibration_date|date:"d-M-Y"|default:"—" }}</td><td>{{ item.next_due_date|date:"d-M-Y"|default:"—" }}</td><td><span class="status">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="6">No due instruments.</td></tr>{% endfor %}
+{% for item in due_instruments %}<tr><td><a href="{% url 'calibration:instrument_detail' item.pk %}">{{ item.asset_number }}</a></td><td>{{ item.description }}</td><td>{{ item.custodian|default:"—" }}</td><td>{{ item.latest_calibration_date|date:"d-M-Y"|default:"—" }}</td><td>{{ item.next_due_date|date:"d-M-Y"|default:"—" }}</td><td><span class="status status-{{ item.status|lower }}">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="6">No due instruments.</td></tr>{% endfor %}
 </tbody></table></div>
 {% endblock %}

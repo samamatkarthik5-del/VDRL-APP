@@ -11,7 +11,12 @@ from django.utils import timezone
 from operations_portal.decorators import module_access_required
 from operations_portal.models import ModuleCode
 
-from .forms import CalibrationCycleForm, CalibrationVerificationForm, InstrumentForm
+from .forms import (
+    CalibrationCycleForm,
+    CalibrationReleaseForm,
+    CalibrationVerificationForm,
+    InstrumentForm,
+)
 from .models import (
     CalibrationAlert,
     CalibrationCycle,
@@ -156,6 +161,29 @@ def cycle_verify(request, pk):
         request,
         "calibration/form.html",
         {"form": form, "title": f"QC verification - {cycle.instrument.asset_number}"},
+    )
+
+
+@login_required
+@module_access_required(ModuleCode.CALIBRATION)
+@permission_required("calibration.release_calibrated_instrument", raise_exception=True)
+def cycle_release(request, pk):
+    cycle = get_object_or_404(CalibrationCycle.objects.select_related("instrument"), pk=pk)
+    if cycle.status != CalibrationCycleStatus.VERIFIED:
+        messages.error(
+            request,
+            "Only a QC-verified cycle can be released back to production.",
+        )
+        return redirect("calibration:instrument_detail", pk=cycle.instrument_id)
+    form = CalibrationReleaseForm(request.POST or None, instance=cycle)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Instrument released back to production.")
+        return redirect("calibration:instrument_detail", pk=cycle.instrument_id)
+    return render(
+        request,
+        "calibration/form.html",
+        {"form": form, "title": f"Release to production - {cycle.instrument.asset_number}"},
     )
 
 

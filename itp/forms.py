@@ -247,6 +247,20 @@ class HoldReleaseForm(forms.Form):
     remarks = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
 
 
+class CorrectionRequestForm(forms.Form):
+    reason = forms.CharField(
+        label="What needs to be corrected",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Explain what the uploader needs to fix..."}),
+    )
+
+
+class CommentForm(forms.Form):
+    body = forms.CharField(
+        label="Comment",
+        widget=forms.Textarea(attrs={"rows": 2, "placeholder": "Add a comment..."}),
+    )
+
+
 class InternalActivityExecutionForm(forms.ModelForm):
     class Meta:
         model = ITPActivityExecution

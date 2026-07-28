@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 
 from .models import ModuleCode
 from .services import has_module_access
+
+# Configurable so this keeps working even if your VDRL app isn't literally
+# named "core". Set OPERATIONS_VDRL_APP_LABEL in settings if it's different.
+VDRL_APP_LABEL = getattr(settings, "OPERATIONS_VDRL_APP_LABEL", "core")
 
 
 class ModuleAccessMiddleware:
     """Block direct URL access, not only clicks from the landing page."""
 
     MODULE_PREFIXES = {
-        "core.": ModuleCode.VDRL,
+        f"{VDRL_APP_LABEL}.": ModuleCode.VDRL,
         "itp.": ModuleCode.ITP_NOI,
         "calibration.": ModuleCode.CALIBRATION,
     }

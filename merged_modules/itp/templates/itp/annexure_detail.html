@@ -1,17 +1,18 @@
 {% extends 'itp/base.html' %}
 {% block title %}{{ annexure }}{% endblock %}
-{% block content %}
+{% block itp_body %}
 <div class="heading-actions">
   <div><h1>{{ annexure.document_number }} Rev.{{ annexure.revision }}</h1><p>{{ annexure.title }}</p></div>
   <div>
     <a class="button secondary" href="{{ annexure.original_file.url }}">Original Excel</a>
     {% if perms.itp.activate_annexure and annexure.status != 'ACTIVE' %}
+    <form method="post" action="{% url 'itp:request_annexure_correction' annexure.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="reason" class="js-reason-input"><button type="button" class="danger" onclick="itpAskReason(this)">Request correction</button></form>
     <form method="post" action="{% url 'itp:activate_annexure' annexure.pk %}" class="inline">{% csrf_token %}<button type="submit">Activate revision</button></form>
     {% endif %}
   </div>
 </div>
 <div class="grid four">
-  <div class="card"><strong>Status</strong><br>{{ annexure.get_status_display }}</div>
+  <div class="card"><strong>Status</strong><br><span class="status status-{{ annexure.status|lower }}">{{ annexure.get_status_display }}</span></div>
   <div class="card"><strong>Imported</strong><br>{{ annexure.import_summary.imported|default:0 }}</div>
   <div class="card"><strong>Skipped</strong><br>{{ annexure.import_summary.skipped|default:0 }}</div>
   <div class="card"><strong>Errors</strong><br>{{ annexure.import_summary.errors|default:0 }}</div>
@@ -25,4 +26,17 @@
 <thead><tr><th>PO line</th><th>Description</th><th>Qty</th><th>Inspection class</th><th>NDE</th><th>Temperature</th><th>Tag</th><th>Piping class</th><th>Service</th><th>Insulation</th><th></th></tr></thead>
 <tbody>{% for line in lines %}<tr><td>{{ line.po_line_no }}</td><td>{{ line.description }}</td><td>{{ line.quantity }}</td><td>{{ line.inspection_class }}</td><td>{{ line.nde_applicable }}</td><td>{{ line.temperature_text }}</td><td>{{ line.tag_number }}</td><td>{{ line.piping_class }}</td><td>{{ line.service }}</td><td>{{ line.insulation }}</td><td><a href="{% url 'itp:edit_annexure_line' line.pk %}">Edit</a></td></tr>{% empty %}<tr><td colspan="11">No lines imported.</td></tr>{% endfor %}</tbody>
 </table></div>
+
+{% include "itp/_comments.html" %}
+{% endblock %}
+{% block scripts %}
+<script>
+function itpAskReason(btn){
+  var reason = prompt("What needs to be corrected?");
+  if(reason === null || reason.trim() === ""){ return; }
+  var form = btn.closest("form");
+  form.querySelector(".js-reason-input").value = reason;
+  form.submit();
+}
+</script>
 {% endblock %}

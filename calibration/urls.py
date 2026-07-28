@@ -12,16 +12,7 @@ urlpatterns = [
     path("instruments/<uuid:pk>/edit/", views.instrument_update, name="instrument_update"),
     path("instruments/<uuid:instrument_pk>/cycles/add/", views.cycle_create, name="cycle_create"),
     path("cycles/<uuid:pk>/verify/", views.cycle_verify, name="cycle_verify"),
+    path("cycles/<uuid:pk>/release/", views.cycle_release, name="cycle_release"),
     path("due/", views.due_list, name="due_list"),
     path("master-list/", views.master_list, name="master_list"),
-        path(
-        "import-excel/",
-        views.import_excel,
-        name="import_excel",
-    ),
-    path(
-        "import-excel/template/",
-        views.download_excel_template,
-        name="download_excel_template",
-    ),
 ]

@@ -14,6 +14,8 @@ from django.utils import timezone
 from .forms import (
     AnnexureLineForm,
     AnnexureUploadForm,
+    CommentForm,
+    CorrectionRequestForm,
     CoverageCompletionFormSet,
     HoldReleaseForm,
     InternalActivityExecutionForm,
@@ -25,12 +27,14 @@ from .forms import (
 )
 from .models import (
     AuditLog,
+    CommentKind,
     DocumentStatus,
     ExecutionSource,
     ITPActivityExecution,
     ITPAnnexure,
     ITPAnnexureLine,
     ITPClause,
+    ITPComment,
     ITPDocument,
     ITPLineClauseMapping,
     MappingReviewStatus,
@@ -52,6 +56,22 @@ from .services.noi import (
 def _assert_access(user, sales_order) -> None:
     if not can_access_sales_order(user, sales_order):
         raise PermissionDenied("You do not have access to this Sales Order.")
+
+
+def _post_comment(request: HttpRequest, obj, redirect_to: str, redirect_kwargs: dict, kind: str = CommentKind.COMMENT):
+    """Shared handler for the plain "add a comment" action on ITP/annexure/NOI detail pages."""
+    form = CommentForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        ITPComment.objects.create(
+            content_object=obj,
+            kind=kind,
+            author=request.user,
+            body=form.cleaned_data["body"],
+        )
+        messages.success(request, "Comment added.")
+    elif request.method == "POST":
+        messages.error(request, "Comment cannot be empty.")
+    return redirect(redirect_to, **redirect_kwargs)
 
 
 @login_required
@@ -118,7 +138,16 @@ def itp_detail(request: HttpRequest, pk) -> HttpResponse:
     return render(
         request,
         "itp/itp_detail.html",
-        {"document": document, "clauses": clauses, "issues": document.import_issues.all()},
+        {
+            "document": document,
+            "clauses": clauses,
+            "issues": document.import_issues.all(),
+            "comments": document.comments.select_related("author"),
+            "comment_form": CommentForm(),
+            "comment_url_name": "itp:add_itp_comment",
+            "obj_pk": document.pk,
+            "correction_form": CorrectionRequestForm(),
+        },
     )
 
 
@@ -165,6 +194,41 @@ def activate_itp(request: HttpRequest, pk) -> HttpResponse:
 
 
 @login_required
+@permission_required("itp.activate_itp", raise_exception=True)
+def request_itp_correction(request: HttpRequest, pk) -> HttpResponse:
+    """QC sends an ITP revision back to the uploader instead of activating it."""
+    document = get_object_or_404(ITPDocument.objects.select_related("sales_order"), pk=pk)
+    _assert_access(request.user, document.sales_order)
+    if document.status == DocumentStatus.ACTIVE:
+        messages.error(request, "An active revision cannot be sent back for correction.")
+        return redirect("itp:itp_detail", pk=pk)
+    form = CorrectionRequestForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        ITPComment.objects.create(
+            content_object=document,
+            kind=CommentKind.CORRECTION_REQUEST,
+            author=request.user,
+            body=form.cleaned_data["reason"],
+        )
+        document.status = DocumentStatus.CORRECTION_REQUIRED
+        document.save(update_fields=["status", "updated_at"])
+        messages.success(request, "Sent back to the uploader for correction.")
+        return redirect("itp:itp_detail", pk=pk)
+    return render(
+        request,
+        "itp/form.html",
+        {"form": form, "title": f"Request correction - {document.document_number}"},
+    )
+
+
+@login_required
+def add_itp_comment(request: HttpRequest, pk) -> HttpResponse:
+    document = get_object_or_404(ITPDocument.objects.select_related("sales_order"), pk=pk)
+    _assert_access(request.user, document.sales_order)
+    return _post_comment(request, document, "itp:itp_detail", {"pk": pk})
+
+
+@login_required
 @permission_required("itp.add_itpannexure", raise_exception=True)
 def upload_annexure(request: HttpRequest) -> HttpResponse:
     form = AnnexureUploadForm(request.POST or None, request.FILES or None)
@@ -206,6 +270,11 @@ def annexure_detail(request: HttpRequest, pk) -> HttpResponse:
             "annexure": annexure,
             "lines": annexure.lines.all(),
             "issues": annexure.import_issues.all(),
+            "comments": annexure.comments.select_related("author"),
+            "comment_form": CommentForm(),
+            "comment_url_name": "itp:add_annexure_comment",
+            "obj_pk": annexure.pk,
+            "correction_form": CorrectionRequestForm(),
         },
     )
 
@@ -252,6 +321,41 @@ def activate_annexure(request: HttpRequest, pk) -> HttpResponse:
     )
     messages.success(request, "Annexure revision activated.")
     return redirect("itp:annexure_detail", pk=pk)
+
+
+@login_required
+@permission_required("itp.activate_annexure", raise_exception=True)
+def request_annexure_correction(request: HttpRequest, pk) -> HttpResponse:
+    """QC sends an annexure revision back to the uploader instead of activating it."""
+    annexure = get_object_or_404(ITPAnnexure.objects.select_related("sales_order"), pk=pk)
+    _assert_access(request.user, annexure.sales_order)
+    if annexure.status == DocumentStatus.ACTIVE:
+        messages.error(request, "An active revision cannot be sent back for correction.")
+        return redirect("itp:annexure_detail", pk=pk)
+    form = CorrectionRequestForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        ITPComment.objects.create(
+            content_object=annexure,
+            kind=CommentKind.CORRECTION_REQUEST,
+            author=request.user,
+            body=form.cleaned_data["reason"],
+        )
+        annexure.status = DocumentStatus.CORRECTION_REQUIRED
+        annexure.save(update_fields=["status", "updated_at"])
+        messages.success(request, "Sent back to the uploader for correction.")
+        return redirect("itp:annexure_detail", pk=pk)
+    return render(
+        request,
+        "itp/form.html",
+        {"form": form, "title": f"Request correction - {annexure.document_number}"},
+    )
+
+
+@login_required
+def add_annexure_comment(request: HttpRequest, pk) -> HttpResponse:
+    annexure = get_object_or_404(ITPAnnexure.objects.select_related("sales_order"), pk=pk)
+    _assert_access(request.user, annexure.sales_order)
+    return _post_comment(request, annexure, "itp:annexure_detail", {"pk": pk})
 
 
 @login_required
@@ -402,8 +506,23 @@ def noi_detail(request: HttpRequest, pk) -> HttpResponse:
     return render(
         request,
         "itp/noi_detail.html",
-        {"noi": noi, "coverages": coverages, "alerts": noi.alerts.filter(is_resolved=False)},
+        {
+            "noi": noi,
+            "coverages": coverages,
+            "alerts": noi.alerts.filter(is_resolved=False),
+            "comments": noi.comments.select_related("author"),
+            "comment_form": CommentForm(),
+            "comment_url_name": "itp:add_noi_comment",
+            "obj_pk": noi.pk,
+        },
     )
+
+
+@login_required
+def add_noi_comment(request: HttpRequest, pk) -> HttpResponse:
+    noi = get_object_or_404(NoticeOfInspection.objects.select_related("itp__sales_order"), pk=pk)
+    _assert_access(request.user, noi.itp.sales_order)
+    return _post_comment(request, noi, "itp:noi_detail", {"pk": pk})
 
 
 @login_required

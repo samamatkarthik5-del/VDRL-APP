@@ -5,6 +5,8 @@ from decimal import Decimal
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -82,6 +84,7 @@ class ITPDocument(models.Model):
     activated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    comments = GenericRelation("itp.ITPComment")
 
     class Meta:
         ordering = ["-created_at"]
@@ -313,6 +316,7 @@ class ITPAnnexure(models.Model):
     activated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    comments = GenericRelation("itp.ITPComment")
 
     class Meta:
         ordering = ["-created_at"]
@@ -513,6 +517,7 @@ class NoticeOfInspection(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    comments = GenericRelation("itp.ITPComment")
 
     class Meta:
         ordering = ["-scheduled_start", "-created_at"]
@@ -847,3 +852,38 @@ class AuditLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.action} - {self.object_type}:{self.object_id}"
+
+
+class CommentKind(models.TextChoices):
+    COMMENT = "COMMENT", "Comment"
+    CORRECTION_REQUEST = "CORRECTION_REQUEST", "Correction requested"
+
+
+class ITPComment(models.Model):
+    """A remark or a QC correction request attached to an ITP document, annexure, or NOI.
+
+    Uses a generic relation so the same model/view/template code covers all
+    three cases instead of three near-duplicate comment tables.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.UUIDField()
+    content_object = GenericForeignKey("content_type", "object_id")
+    kind = models.CharField(
+        max_length=20, choices=CommentKind.choices, default=CommentKind.COMMENT
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="itp_comments",
+    )
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [models.Index(fields=["content_type", "object_id"])]
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()} by {self.author} on {self.content_object}"

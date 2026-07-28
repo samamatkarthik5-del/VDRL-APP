@@ -79,6 +79,26 @@ class CalibrationCycleForm(forms.ModelForm):
         }
 
 
+class CalibrationReleaseForm(forms.ModelForm):
+    class Meta:
+        model = CalibrationCycle
+        fields = [
+            "returned_to_production_date",
+            "put_back_in_service_date",
+        ]
+        widgets = {
+            "returned_to_production_date": DateInput(),
+            "put_back_in_service_date": DateInput(),
+        }
+
+    def save(self, commit=True):
+        cycle = super().save(commit=False)
+        cycle.status = CalibrationCycleStatus.RELEASED
+        if commit:
+            cycle.save()
+        return cycle
+
+
 class CalibrationVerificationForm(forms.ModelForm):
     class Meta:
         model = CalibrationCycle

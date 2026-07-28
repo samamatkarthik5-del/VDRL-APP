@@ -1,6 +1,6 @@
 {% extends 'itp/base.html' %}
 {% block title %}Confirm {{ noi.number }}{% endblock %}
-{% block content %}
+{% block itp_body %}
 <h1>Confirm completion - {{ noi.number }}</h1>
 <p>The scheduled activity ended on <strong>{{ noi.scheduled_end|date:'d-M-Y H:i' }}</strong>. Confirm whether it was completed.</p>
 <form method="post">{% csrf_token %}
