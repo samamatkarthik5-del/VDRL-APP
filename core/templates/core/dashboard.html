@@ -538,14 +538,12 @@ Quality Management Portal
         </div>
 
     </div>
-
-
     <div class="module-grid">
 
         {% if request.user.is_superuser or perms.core %}
 
            <a
-    href="{% url 'core:dashboard' %}#vdrl-overview"
+    href="#sales-orders"
     class="module-card module-card-vdrl"
 >
 
@@ -570,21 +568,21 @@ Quality Management Portal
 
                     <div class="module-metric">
                         <span class="module-metric-value">
-                            {{ statistics.total_documents|default:0 }}
+                            {{ sales_order_rows|length }}
                         </span>
 
                         <span class="module-metric-label">
-                            Total Documents
+                            Active Sales Orders
                         </span>
                     </div>
 
                     <div class="module-metric">
                         <span class="module-metric-value">
-                            {{ statistics.overdue_documents|default:0 }}
+                            {{ statistics.total_documents|default:0 }}
                         </span>
 
                         <span class="module-metric-label">
-                            Overdue
+                            VDRL Documents
                         </span>
                     </div>
 
@@ -790,6 +788,116 @@ Quality Management Portal
         {% endif %}
 
     </div>
+
+
+    <h2 id="sales-orders" class="qms-section-title">
+        Active Sales Orders
+    </h2>
+
+    <p style="margin: -8px 0 14px; color: var(--qms-muted);">
+        Select a Sales Order to open its current VDRL and document status.
+    </p>
+
+    <section class="qms-panel">
+
+        <div class="qms-panel-body qms-table-container">
+
+            <table class="qms-table">
+
+                <thead>
+                    <tr>
+                        <th>Sales Order</th>
+                        <th>Customer</th>
+                        <th>Project</th>
+                        <th>Documents</th>
+                        <th>Approved</th>
+                        <th>With Customer</th>
+                        <th>Progress</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for row in sales_order_rows %}
+
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    {{ row.sales_order.sales_order_number }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                {{ row.sales_order.customer.name }}
+                            </td>
+
+                            <td>
+                                {{ row.sales_order.project|default:"-" }}
+                            </td>
+
+                            <td>
+                                {{ row.total_count }}
+                            </td>
+
+                            <td>
+                                {{ row.approved_count }}
+                            </td>
+
+                            <td>
+                                {{ row.customer_count }}
+                            </td>
+
+                            <td>
+
+                                <div class="qms-progress">
+
+                                    <div class="qms-progress-track">
+
+                                        <div
+                                            class="qms-progress-fill"
+                                            style="width: {{ row.progress }}%;"
+                                        ></div>
+
+                                    </div>
+
+                                    <span>
+                                        {{ row.progress }}%
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+                                <a
+                                    href="{% url 'core:sales_order_vdrl' row.sales_order.pk %}"
+                                    class="qms-button qms-button-primary"
+                                >
+                                    Open VDRL
+                                </a>
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+                            <td colspan="8" class="qms-empty">
+                                No active Sales Orders.
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
 
 
     <h2 id="vdrl-overview" class="qms-section-title">
@@ -1136,9 +1244,9 @@ Quality Management Portal
                 <div class="qms-task-list">
 
                     <a
-    href="#vdrl-overview"
-    class="module-card module-card-vdrl"
->
+                            href="#sales-orders"
+                            class="qms-task"
+                        >
 
                         <div class="qms-task-icon">📂</div>
 
@@ -1291,110 +1399,6 @@ Quality Management Portal
     </section>
 
 
-    <h2 class="qms-section-title">
-        Active Sales Orders
-    </h2>
-
-    <section class="qms-panel">
-
-        <div class="qms-panel-body qms-table-container">
-
-            <table class="qms-table">
-
-                <thead>
-                    <tr>
-                        <th>Sales Order</th>
-                        <th>Customer</th>
-                        <th>Project</th>
-                        <th>Documents</th>
-                        <th>Approved</th>
-                        <th>With Customer</th>
-                        <th>Progress</th>
-                        <th></th>
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    {% for row in sales_order_rows %}
-
-                        <tr>
-
-                            <td>
-                                <strong>
-                                    {{ row.sales_order.sales_order_number }}
-                                </strong>
-                            </td>
-
-                            <td>
-                                {{ row.sales_order.customer.name }}
-                            </td>
-
-                            <td>
-                                {{ row.sales_order.project|default:"-" }}
-                            </td>
-
-                            <td>
-                                {{ row.total_count }}
-                            </td>
-
-                            <td>
-                                {{ row.approved_count }}
-                            </td>
-
-                            <td>
-                                {{ row.customer_count }}
-                            </td>
-
-                            <td>
-
-                                <div class="qms-progress">
-
-                                    <div class="qms-progress-track">
-
-                                        <div
-                                            class="qms-progress-fill"
-                                            style="width: {{ row.progress }}%;"
-                                        ></div>
-
-                                    </div>
-
-                                    <span>
-                                        {{ row.progress }}%
-                                    </span>
-
-                                </div>
-
-                            </td>
-
-                            <td>
-                                <a
-                                    href="{% url 'core:sales_order_vdrl' row.sales_order.pk %}"
-                                    class="qms-button qms-button-primary"
-                                >
-                                    Open VDRL
-                                </a>
-                            </td>
-
-                        </tr>
-
-                    {% empty %}
-
-                        <tr>
-                            <td colspan="8" class="qms-empty">
-                                No active Sales Orders.
-                            </td>
-                        </tr>
-
-                    {% endfor %}
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </section>
 
 </div>
 

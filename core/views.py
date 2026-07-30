@@ -15,6 +15,8 @@ from django.shortcuts import (
 )
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from operations_portal.decorators import module_access_required
+from operations_portal.models import ModuleCode
 from .models import (
     AuditLog,
     CRSComment,
@@ -23,6 +25,7 @@ from .models import (
     DocumentFile,
     DocumentTransaction,
     SalesOrder,
+    SalesOrderVDRL,
     SalesOrderVDRLDocument,
 )
 from .forms import (
@@ -64,6 +67,23 @@ COMPLETED_STATUSES = [
     SalesOrderVDRLDocument.DocumentStatus.NOT_APPLICABLE,
     SalesOrderVDRLDocument.DocumentStatus.CANCELLED,
 ]
+
+
+def get_current_local_time():
+    """
+    Returns the current time in local time.
+
+    timezone.localtime() only accepts an aware datetime and raises
+    ValueError on a naive one. timezone.now() returns naive or aware
+    depending on settings.USE_TZ, so calling localtime() on it
+    directly crashes whenever USE_TZ = False. This checks first and
+    falls back to the naive value, which is already local (system)
+    time in that case.
+    """
+
+    now = timezone.now()
+
+    return timezone.localtime(now) if timezone.is_aware(now) else now
 
 
 def get_allowed_actions(document):
@@ -180,43 +200,91 @@ def get_allowed_actions(document):
     ]
 
 @login_required
+@module_access_required(ModuleCode.VDRL)
 def dashboard(request):
     user = request.user
 
-    modules = [
-        {
-            "title": "VDRL",
-            "icon": "fa-folder-open",
-            "url": "/work-bucket/",
-            "description": "Manage VDRLs, Sales Orders and Documents",
-            "allowed": user.has_perm("core.access_vdrl") or user.is_superuser,
-            "colour": "primary",
-        },
-        {
-            "title": "ITP & NOI",
-            "icon": "fa-clipboard-check",
-            "url": "/itp/",
-            "description": "Inspection Test Plans & Notifications",
-            "allowed": user.has_perm("core.access_itp") or user.is_superuser,
-            "colour": "success",
-        },
-        {
-            "title": "Calibration",
-            "icon": "fa-ruler-combined",
-            "url": "/calibration/",
-            "description": "Instrument Calibration Management",
-            "allowed": user.has_perm("core.access_calibration") or user.is_superuser,
-            "colour": "warning",
-        },
-    ]
-
-    return render(
-        request,
-        "core/dashboard.html",
-        {
-            "modules": modules,
-        },
+    sales_orders = (
+        SalesOrder.objects
+        .filter(is_active=True)
+        .select_related(
+            "customer",
+            "project",
+            "project_manager",
+            "document_controller",
+        )
     )
+
+    # Superusers can see everything.
+    # Other users see Sales Orders connected to their responsibility.
+    if not user.is_superuser:
+        sales_orders = sales_orders.filter(
+            Q(project_manager=user)
+            | Q(document_controller=user)
+            | Q(vdrls__generated_by=user)
+            | Q(vdrls__documents__responsible_person=user)
+            | Q(
+                vdrls__documents__responsible_department__manager=user
+            )
+        ).distinct()
+
+    current_vdrls = (
+        SalesOrderVDRL.objects
+        .filter(
+            sales_order__in=sales_orders,
+            is_current=True,
+        )
+        .select_related(
+            "sales_order",
+            "sales_order__customer",
+            "source_template",
+        )
+        .prefetch_related("documents")
+    )
+
+    documents = (
+        SalesOrderVDRLDocument.objects
+        .filter(
+            vdrl__in=current_vdrls,
+            is_active=True,
+        )
+        .select_related(
+            "vdrl",
+            "vdrl__sales_order",
+            "responsible_department",
+            "responsible_person",
+        )
+    )
+
+    context = {
+        "sales_orders": sales_orders,
+        "current_vdrls": current_vdrls,
+        "recent_sales_orders": sales_orders[:10],
+        "recent_vdrls": current_vdrls[:10],
+
+        "sales_order_count": sales_orders.count(),
+        "vdrl_count": current_vdrls.count(),
+        "document_count": documents.count(),
+
+        "documents_under_customer_review": documents.filter(
+            status__in=[
+                SalesOrderVDRLDocument.DocumentStatus.SUBMITTED,
+                SalesOrderVDRLDocument.DocumentStatus.UNDER_CUSTOMER_REVIEW,
+                SalesOrderVDRLDocument.DocumentStatus.RESUBMITTED,
+            ]
+        ).count(),
+
+        "documents_with_comments": documents.filter(
+            status__in=[
+                SalesOrderVDRLDocument.DocumentStatus.RETURNED_WITH_COMMENTS,
+                SalesOrderVDRLDocument.DocumentStatus.COMMENT_ASSESSMENT,
+                SalesOrderVDRLDocument.DocumentStatus.CRS_IN_PROGRESS,
+                SalesOrderVDRLDocument.DocumentStatus.REVISION_IN_PROGRESS,
+            ]
+        ).count(),
+    }
+
+    return render(request, "core/dashboard.html", context)
 
 
 @login_required
@@ -242,8 +310,11 @@ def sales_order_vdrl(request, pk):
         raise PermissionDenied
 
     vdrl = (
-        sales_order.vdrls
-        .filter(is_current=True)
+        SalesOrderVDRL.objects
+        .filter(
+            sales_order=sales_order,
+            is_current=True,
+        )
         .order_by("-created_at")
         .first()
     )
@@ -261,8 +332,11 @@ def sales_order_vdrl(request, pk):
         )
 
     all_documents = (
-        vdrl.documents
-        .filter(is_active=True)
+        SalesOrderVDRLDocument.objects
+        .filter(
+            vdrl=vdrl,
+            is_active=True,
+        )
         .select_related(
             "document",
             "responsible_department",
@@ -392,7 +466,7 @@ def sales_order_vdrl(request, pk):
         )
 
     if overdue_filter == "YES":
-        today = timezone.localdate()
+        today = get_current_local_time().date()
 
         documents = documents.filter(
             Q(
@@ -414,45 +488,47 @@ def sales_order_vdrl(request, pk):
     document_list = list(documents)
 
     for document in document_list:
-
-        document.can_edit_details = (
-        can_edit_document_details(
+        setattr(
+            document,
+            "can_edit_details",
+            can_edit_document_details(
+                request.user,
+                document,
+            ),
+        )
+        setattr(
+            document,
+            "can_manage_files",
+            can_manage_files(
+                request.user,
+                document,
+            ),
+        )
+        setattr(
+            document,
+            "can_manage_crs",
+            can_manage_crs_for_document(
+                request.user,
+                document,
+            ),
+        )
+        if can_manage_workflow(
             request.user,
             document,
+        ):
+            setattr(
+                document,
+                "available_actions",
+                get_allowed_actions(document),
             )
-        )
+        else:
+            setattr(document, "available_actions", [])
 
-    document.can_manage_files = (
-        can_manage_files(
-            request.user,
+        setattr(
             document,
+            "default_open_file",
+            document.get_default_file(),
         )
-    )
-
-    document.can_manage_crs = (
-        can_manage_crs_for_document(
-            request.user,
-            document,
-        )
-    )
-
-    if can_manage_workflow(
-        request.user,
-        document,
-    ):
-        document.available_actions = (
-            get_allowed_actions(
-                document
-            )
-        )
-
-    else:
-        document.available_actions = []
-
-
-    document.default_open_file = (
-        document.get_default_file()
-    )
 
     context = {
         "sales_order": sales_order,
@@ -504,7 +580,8 @@ def document_detail(request, pk):
         raise PermissionDenied
 
     transactions = (
-        document.transactions
+        DocumentTransaction.objects
+        .filter(document=document)
         .select_related(
             "responsible_person_after_event",
             "elapsed_responsible_person",
@@ -517,9 +594,10 @@ def document_detail(request, pk):
     )
 
     files = (
-        document.files
+        DocumentFile.objects
         .filter(
-            is_active=True
+            document=document,
+            is_active=True,
         )
         .select_related(
             "uploaded_by"
@@ -531,7 +609,8 @@ def document_detail(request, pk):
     )
 
     crs_registers = (
-        document.crs_registers
+        CRSRegister.objects
+        .filter(document=document)
         .select_related(
             "prepared_by",
             "reviewed_by",
@@ -746,9 +825,7 @@ def document_action(
             instance=transaction_instance,
             initial={
                 "transaction_at": (
-                    timezone.localtime(
-                        timezone.now()
-                    )
+                    get_current_local_time()
                     .replace(
                         second=0,
                         microsecond=0,
@@ -1140,8 +1217,9 @@ def crs_create(
         raise PermissionDenied
 
     latest_return_transaction = (
-        document.transactions
+        DocumentTransaction.objects
         .filter(
+            document=document,
             transaction_type__in=[
                 DocumentTransaction
                 .TransactionType
@@ -1216,9 +1294,7 @@ def crs_create(
             ),
 
             "opened_at": (
-                timezone.localtime(
-                    timezone.now()
-                )
+                get_current_local_time()
                 .replace(
                     second=0,
                     microsecond=0,
@@ -1284,7 +1360,8 @@ def crs_detail(
         raise PermissionDenied
 
     comments = (
-        crs.comments
+        CRSComment.objects
+        .filter(crs=crs)
         .select_related(
             "assigned_department",
             "assigned_person",
@@ -1448,7 +1525,9 @@ def crs_comment_create(
 
     else:
         next_comment_number = (
-            crs.comments.count()
+            CRSComment.objects
+            .filter(crs=crs)
+            .count()
             + 1
         )
 
@@ -1471,9 +1550,7 @@ def crs_comment_create(
                 ),
 
                 "assigned_at": (
-                    timezone.localtime(
-                        timezone.now()
-                    )
+                    get_current_local_time()
                     .replace(
                         second=0,
                         microsecond=0,
